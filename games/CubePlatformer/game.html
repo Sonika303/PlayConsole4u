@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cube Platformer</title>
+<link rel="icon" type="image/png" href="../../favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Nunito',sans-serif;
+  background:#0b1120;color:#e8f0fe;
+  overflow:hidden;height:100vh;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse 55% 45% at 20% 55%,rgba(59,130,246,.11) 0%,transparent 60%),
+    radial-gradient(ellipse 45% 55% at 80% 30%,rgba(147,197,253,.07) 0%,transparent 60%);
+  pointer-events:none;
+}
+
+/* ── MENU ── */
+#menu{
+  position:relative;z-index:1;height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+}
+h1{
+  font-size:30px;font-weight:900;letter-spacing:5px;color:#93c5fd;
+  margin-bottom:8px;text-shadow:0 0 28px rgba(147,197,253,.4);
+}
+.subtitle{
+  font-size:11px;font-weight:700;letter-spacing:3px;
+  color:rgba(96,165,250,.5);margin-bottom:32px;text-transform:uppercase;
+}
+
+/* ── LEVEL NODES ── */
+.level-grid{
+  display:grid;
+  grid-template-columns:repeat(5,72px);
+  gap:12px;
+  margin-bottom:32px;
+}
+.node{
+  width:72px;height:72px;
+  border:2px solid rgba(59,130,246,.4);
+  border-radius:14px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:900;font-size:22px;
+  cursor:pointer;
+  background:#111827;
+  color:#93c5fd;
+  transition:transform .18s,border-color .18s,background .18s;
+  will-change:transform;
+  user-select:none;position:relative;
+}
+.node .lbl{font-size:10px;margin-top:3px;color:rgba(96,165,250,.45)}
+.node:hover:not(.locked){
+  transform:translateY(-4px);
+  border-color:#60a5fa;
+  background:#1a2a48;
+}
+.node.selected{
+  border-color:#93c5fd;
+  background:rgba(37,99,235,.4);
+  color:#dbeafe;
+}
+.node.selected::after{
+  content:'';position:absolute;inset:-5px;
+  border-radius:18px;
+  border:2px solid rgba(147,197,253,.4);
+  animation:pulse 2s ease infinite;
+  pointer-events:none;
+}
+@keyframes pulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.35;transform:scale(1.05)}
+}
+.node.locked{
+  opacity:.2;
+  cursor:not-allowed;pointer-events:none;
+}
+.node.done{border-color:rgba(96,165,250,.5);background:#0f1e36}
+.node.done .lbl{color:#f59e0b}
+
+/* ── PLAY BUTTON ── */
+.play-btn{
+  padding:15px 76px;
+  background:linear-gradient(135deg,#2563eb,#60a5fa);
+  color:#fff;border:none;
+  font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;letter-spacing:3px;
+  border-radius:12px;cursor:pointer;
+  transition:.2s;will-change:transform;
+}
+.play-btn:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.play-btn:active{transform:translateY(0)}
+
+.exit-link{
+  margin-top:18px;font-size:11px;font-weight:700;
+  color:rgba(96,165,250,.4);text-decoration:none;letter-spacing:2px;transition:.2s;
+}
+.exit-link:hover{color:#60a5fa}
+
+/* ── GAME VIEW ── */
+#game-container{
+  display:none;width:100%;height:100vh;
+  position:relative;background:#0b1120;
+  align-items:center;justify-content:center;
+}
+#game-container.visible{display:flex}
+canvas{display:block}
+.back-btn{
+  position:absolute;top:12px;left:12px;z-index:20;
+  background:#111827;border:2px solid rgba(59,130,246,.35);
+  color:#93c5fd;font-family:'Nunito',sans-serif;
+  font-size:12px;font-weight:800;padding:8px 18px;
+  border-radius:9px;cursor:pointer;transition:.2s;
+}
+.back-btn:hover{border-color:#60a5fa;background:#1a2a48;color:#dbeafe}
+</style>
+</head>
+<body>
+
+<div id="menu">
+  <h1>CUBE PLATFORMER</h1>
+  <div class="subtitle">Select Level</div>
+  <div class="level-grid" id="grid"></div>
+  <button class="play-btn" onclick="startGame()">▶ &nbsp; PLAY</button>
+  <a class="exit-link" href="../../index.html">← EXIT TO HOME</a>
+</div>
+
+<div id="game-container">
+  <button class="back-btn" onclick="location.reload()">← BACK</button>
+  <canvas id="gameCanvas"></canvas>
+</div>
+
+<!-- levels data must come before game engine -->
+<script src="levels.js"></script>
+<script src="game.js"></script>
+
+<script>
+// NOTE: MAX_LEVELS is defined in game.js — do NOT redeclare here
+if (!sessionStorage.getItem('cube_prog')) sessionStorage.setItem('cube_prog', '1');
+
+let current = 1;
+const grid = document.getElementById('grid');
+
+function buildGrid() {
+  const unlocked = parseInt(sessionStorage.getItem('cube_prog'));
+  grid.innerHTML = '';
+  for (let i = 1; i <= MAX_LEVELS; i++) {
+    const done   = i < unlocked;
+    const locked = i > unlocked;
+    const sel    = i === current;
+    const el = document.createElement('div');
+    el.className = 'node' +
+      (locked ? ' locked' : '') +
+      (sel    ? ' selected' : '') +
+      (done   ? ' done' : '');
+    el.id = 'n' + i;
+    // number + small icon below
+    el.innerHTML = i + '<span class="lbl">' + (done ? '★' : locked ? '🔒' : '▶') + '</span>';
+    if (!locked) el.onclick = () => select(i);
+    grid.appendChild(el);
+  }
+}
+
+function select(n) {
+  if (n > parseInt(sessionStorage.getItem('cube_prog'))) return;
+  current = n;
+  document.querySelectorAll('.node').forEach(e => e.classList.remove('selected'));
+  document.getElementById('n' + n).classList.add('selected');
+}
+
+function startGame() {
+  document.getElementById('menu').style.display = 'none';
+  document.getElementById('game-container').classList.add('visible');
+  initGame(current);
+}
+
+buildGrid();
+</script>
+</body>
+</html>

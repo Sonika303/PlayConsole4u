@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlayConsole4u</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1120;--card:#111827;
+  --b4:#60a5fa;--b5:#3b82f6;--b6:#93c5fd;
+  --text:#e8f0fe;--soft:#6b8ab5;--bord:rgba(59,130,246,.25);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+
+/* LOADER */
+#loader{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s}
+#loader h2{font-size:20px;font-weight:900;letter-spacing:4px;color:var(--b4)}
+.ltrack{width:200px;height:3px;background:#1e2d4a;border-radius:99px;overflow:hidden}
+.lfill{height:100%;width:0;background:linear-gradient(90deg,var(--b5),var(--b4));animation:lf 1.6s ease forwards}
+@keyframes lf{to{width:100%}}
+
+/* BG VIDEO — own GPU layer, no filter */
+#bg-video{
+  position:fixed;inset:0;width:100%;height:100%;object-fit:cover;
+  z-index:0;opacity:.42;
+  transform:translateZ(0);will-change:opacity;
+  transition:opacity .6s;
+}
+/* static dark overlay — no backdrop-filter */
+#bg-overlay{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(135deg,rgba(11,17,32,.72),rgba(11,17,32,.48));
+}
+/* Game preview — no blur (expensive) */
+#bg-game-img{
+  position:fixed;inset:0;width:100%;height:100%;object-fit:cover;
+  z-index:1;opacity:0;
+  filter:brightness(.4) saturate(.45);
+  transform:translateZ(0);will-change:opacity;
+  transition:opacity .65s;
+}
+
+/* LAYOUT */
+.wrap{position:relative;z-index:10;height:100vh;display:flex;flex-direction:column;padding:30px 44px}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:38px}
+.logo{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:900;letter-spacing:3px;color:var(--b4)}
+.logo-box{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--b5),var(--b4));
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  animation:fl 3s ease-in-out infinite;will-change:transform;
+}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.badge{
+  font-size:11px;font-weight:700;
+  background:rgba(59,130,246,.1);color:var(--b4);
+  padding:5px 13px;border-radius:99px;letter-spacing:1px;
+  border:1.5px solid var(--bord);
+  display:flex;align-items:center;gap:6px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:dp 2s ease infinite;will-change:box-shadow}
+@keyframes dp{0%,100%{box-shadow:0 0 0 3px rgba(34,197,94,.2)}50%{box-shadow:0 0 0 7px rgba(34,197,94,0)}}
+
+/* CARDS */
+.slabel{font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--b4);opacity:.7;margin-bottom:16px}
+.grid{display:flex;gap:18px;flex-wrap:wrap}
+.card{
+  width:270px;height:162px;background:var(--card);
+  border:2px solid var(--bord);border-radius:18px;
+  overflow:hidden;position:relative;cursor:pointer;
+  transition:transform .2s,border-color .2s;
+  will-change:transform;
+}
+.cimg{position:absolute;inset:0}
+.cimg img{width:100%;height:100%;object-fit:cover;opacity:.55;transition:opacity .3s,transform .3s;will-change:transform}
+.covlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(11,17,32,.95) 0%,rgba(11,17,32,.05) 55%)}
+.cbody{position:absolute;bottom:0;left:0;right:0;padding:12px 16px}
+.ctag{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--b4);margin-bottom:3px}
+.cname{font-size:16px;font-weight:900;letter-spacing:1px;color:var(--text)}
+.cplay{
+  position:absolute;top:10px;right:10px;width:28px;height:28px;
+  border-radius:7px;background:rgba(11,17,32,.7);
+  border:1.5px solid var(--bord);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:var(--b4);transition:.2s;
+}
+.card:hover{transform:translateY(-4px);border-color:var(--b5)}
+.card:hover .cimg img{opacity:.75;transform:scale(1.04)}
+.card:hover .cplay{background:var(--b5);color:#fff;border-color:var(--b5)}
+.card.active{border-color:var(--b4)}
+
+.hint{margin-top:auto;font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(96,165,250,.3)}
+
+/* VEIL — no backdrop-filter */
+#sb-veil{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s}
+#sb-veil.on{background:rgba(0,0,0,.55);pointer-events:all}
+
+/* SIDEBAR — solid bg, no backdrop-filter */
+#sidebar{
+  position:fixed;top:0;right:0;height:100%;width:0;overflow:hidden;
+  background:#0f1829;border-left:2px solid transparent;
+  display:flex;flex-direction:column;
+  transition:width .32s cubic-bezier(.4,0,.2,1),border-color .32s,padding .32s;
+  z-index:200;will-change:width;
+}
+#sidebar.open{width:360px;border-left-color:var(--bord);padding:30px 24px}
+.sb-x{
+  align-self:flex-end;flex-shrink:0;width:32px;height:32px;
+  border-radius:8px;border:1.5px solid var(--bord);background:transparent;
+  font-size:13px;cursor:pointer;color:var(--soft);
+  display:flex;align-items:center;justify-content:center;transition:.2s;
+}
+.sb-x:hover{background:rgba(59,130,246,.15);border-color:var(--b4);color:var(--text)}
+.sb-imgw{margin:12px 0;border-radius:12px;overflow:hidden;border:1.5px solid var(--bord);flex-shrink:0}
+.sb-imgw img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover}
+.sb-t{font-size:20px;font-weight:900;letter-spacing:1px;color:var(--text);margin-bottom:5px}
+.sb-d{font-size:12px;color:var(--soft);line-height:1.7;margin-bottom:14px}
+.sb-tags{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:20px}
+.pill{
+  font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+  padding:4px 11px;border-radius:99px;
+  background:rgba(59,130,246,.12);color:var(--b4);border:1.5px solid var(--bord);
+}
+.sb-play{
+  background:linear-gradient(135deg,var(--b5),var(--b4));
+  color:#fff;border:none;padding:15px;
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;letter-spacing:3px;
+  border-radius:12px;cursor:pointer;margin-top:auto;flex-shrink:0;transition:.2s;
+}
+.sb-play:hover{filter:brightness(1.12)}
+</style>
+</head>
+<body>
+
+<div id="loader">
+  <div class="logo-box">🎮</div>
+  <h2>PLAYCONSOLE4U</h2>
+  <div class="ltrack"><div class="lfill"></div></div>
+</div>
+
+<video id="bg-video" muted loop playsinline><source src="videos/intro.mp4" type="video/mp4"></video>
+<img id="bg-game-img" src="" alt="">
+<div id="bg-overlay"></div>
+
+<div class="wrap">
+  <header>
+    <div class="logo"><div class="logo-box">🎮</div>PLAYCONSOLE4U</div>
+    <div class="badge"><div class="dot"></div>ONLINE</div>
+  </header>
+  <div class="slabel">// Games</div>
+  <div class="grid">
+    <div class="card" id="card1"
+      onclick="openSB(this,'CUBE PLATFORMER','A precision platformer with 10 levels of increasing challenge. Spin through the air and wall-jump your way to victory!','images/CubePlatformer/homepage.png','games/CubePlatformer/game.html',['PLATFORMER','10 LEVELS','WALL-JUMP','SPIN'])">
+      <div class="cimg"><img src="images/CubePlatformer/homepage.png" alt="" onerror="this.style.display='none'"></div>
+      <div class="covlay"></div>
+      <div class="cplay">▶</div>
+      <div class="cbody"><div class="ctag">● READY</div><div class="cname">CUBE PLATFORMER</div></div>
+    </div>
+  </div>
+  <div class="hint">CLICK A GAME · THEN PRESS PLAY</div>
+</div>
+
+<div id="sb-veil" onclick="closeSB()"></div>
+<div id="sidebar">
+  <button class="sb-x" onclick="closeSB()">✕</button>
+  <div class="sb-imgw"><img id="sbi" src="" alt=""></div>
+  <div class="sb-t" id="sbt"></div>
+  <div class="sb-d" id="sbd"></div>
+  <div class="sb-tags" id="sbta"></div>
+  <button class="sb-play" id="sbp">▶ &nbsp; PLAY NOW</button>
+</div>
+
+<script>
+const vid=document.getElementById('bg-video');
+const bgi=document.getElementById('bg-game-img');
+const ldr=document.getElementById('loader');
+let gone=false,goHref='';
+
+function hideLdr(){if(gone)return;gone=true;ldr.style.opacity='0';setTimeout(()=>ldr.style.display='none',500)}
+vid.addEventListener('canplay',()=>vid.play().then(hideLdr).catch(hideLdr));
+setTimeout(hideLdr,2500);
+document.addEventListener('click',()=>{if(vid.paused)vid.play().catch(()=>{})},{passive:true});
+// Pause after 8s to free up GPU
+vid.addEventListener('timeupdate',()=>{if(vid.currentTime>=8)vid.pause()});
+
+let activeC=null;
+function openSB(el,t,d,img,href,tags){
+  if(activeC)activeC.classList.remove('active');
+  el.classList.add('active');activeC=el;
+  document.getElementById('sbt').textContent=t;
+  document.getElementById('sbd').textContent=d;
+  document.getElementById('sbi').src=img;
+  document.getElementById('sbta').innerHTML=tags.map(x=>`<span class="pill">${x}</span>`).join('');
+  goHref=href;
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sb-veil').classList.add('on');
+  bgi.src=img;bgi.style.opacity='1';
+  vid.style.opacity='.08';
+}
+function closeSB(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sb-veil').classList.remove('on');
+  if(activeC){activeC.classList.remove('active');activeC=null;}
+  bgi.style.opacity='0';
+  vid.style.opacity='.42';
+}
+document.getElementById('sbp').onclick=()=>{if(goHref)location.href=goHref};
+</script>
+</body>
+</html>
