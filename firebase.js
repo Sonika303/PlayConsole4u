@@ -1,164 +1,295 @@
 // firebase.js
-// Requires Firebase v8 compat CDN scripts loaded BEFORE this file:
-//   firebase-app.js → firebase-auth.js → firebase-database.js
+// Requires Firebase v9 COMPAT scripts loaded before this file:
+//   firebase-app-compat.js
+//   firebase-auth-compat.js
+//   firebase-database-compat.js
+//
+// ── FIREBASE RULES REQUIRED ─────────────────────────────────────────────────
+// In Firebase Console → Realtime Database → Rules, paste this:
+// {
+//   "rules": {
+//     "users": {
+//       "$uid": {
+//         ".read":  "$uid === auth.uid",
+//         ".write": "$uid === auth.uid"
+//       }
+//     },
+//     "leaderboard": {
+//       ".read": true,
+//       "$game": { "$level": { "$uid": { ".write": "$uid === auth.uid" } } }
+//     }
+//   }
+// }
+// ────────────────────────────────────────────────────────────────────────────
 
-// ── CONFIG ──────────────────────────────────────────────────────────────────
-const firebaseConfig = {
-    apiKey:            "AIzaSyC_fNfUQUcdhicNNx-e0weEGURbz-mZs8g",
-    authDomain:        "playconsole4u.firebaseapp.com",
-    databaseURL:       "https://playconsole4u-default-rtdb.firebaseio.com",
-    projectId:         "playconsole4u",
-    storageBucket:     "playconsole4u.firebasestorage.app",
-    messagingSenderId: "383598421108",
-    appId:             "1:383598421108:web:12767cf3738cef9d8a9d21",
-    measurementId:     "G-FFXMD1550D"
-};
-
-// BUG 1 FIX: firebase object might not exist yet → guard with a clear error
 if (typeof firebase === 'undefined') {
-    throw new Error('[FB] Firebase SDK not loaded. Add the CDN <script> tags BEFORE firebase.js');
+    throw new Error('[FB] Firebase SDK not loaded. Add CDN <script> tags BEFORE firebase.js');
 }
-
-// BUG 2 FIX: apps is an array, not a length property on the namespace in some versions
 if (!firebase.apps || firebase.apps.length === 0) {
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp({
+        apiKey:            'AIzaSyC_fNfUQUcdhicNNx-e0weEGURbz-mZs8g',
+        authDomain:        'playconsole4u.firebaseapp.com',
+        databaseURL:       'https://playconsole4u-default-rtdb.firebaseio.com',
+        projectId:         'playconsole4u',
+        storageBucket:     'playconsole4u.firebasestorage.app',
+        messagingSenderId: '383598421108',
+        appId:             '1:383598421108:web:12767cf3738cef9d8a9d21'
+    });
 }
 
 const auth = firebase.auth();
 const db   = firebase.database();
 
-// ── AUTH ────────────────────────────────────────────────────────────────────
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function _safe(s) { return String(s).replace(/[.#$[\]/\s]/g, '_'); }
+
+function _logPermError(fn, e) {
+    console.error(`[FB] ${fn} FAILED:`, e.code || '', e.message);
+    if (e.code === 'PERMISSION_DENIED') {
+        console.error(
+            '[FB] → PERMISSION_DENIED\n' +
+            '     Fix your Firebase Realtime Database Rules.\n' +
+            '     See the rules comment at the top of firebase.js'
+        );
+    }
+}
+
+// ── AUTO-SETUP DEFAULT PROFILE FOR NEW USERS ─────────────────────────────────
+async function _ensureProfile(user) {
+    try {
+        const snap = await db.ref(`users/${user.uid}`).get();
+        const existing = snap.exists() ? (snap.val() || {}) : {};
+        const updates  = {};
+
+        // Only write fields that are missing
+        if (!existing.username)
+            updates.username  = user.displayName || ('Player' + Math.floor(Math.random() * 9000 + 1000));
+        if (!existing.photoURL && user.photoURL)
+            updates.photoURL  = user.photoURL;
+        if (!existing.email && user.email)
+            updates.email     = user.email;
+        if (!existing.createdAt)
+            updates.createdAt = Date.now();
+
+        if (Object.keys(updates).length > 0) {
+            await db.ref(`users/${user.uid}`).update(updates);
+            console.log('[FB] ✓ Default profile created for', user.uid, updates);
+        }
+    } catch (e) {
+        _logPermError('_ensureProfile', e);
+    }
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 function signInGoogle() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    return auth.signInWithPopup(provider);
+    return auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+}
+function signOut()     { return auth.signOut(); }
+function currentUser() { return auth.currentUser; }  // sync – null if not signed in
+
+// Wraps onAuthStateChanged; auto-creates default profile on first sign-in
+function onAuthChange(cb) {
+    auth.onAuthStateChanged(async (user) => {
+        if (user) await _ensureProfile(user);
+        cb(user);
+    });
 }
 
-function signOut()        { return auth.signOut(); }
-function onAuthChange(cb) { auth.onAuthStateChanged(cb); }
-function currentUser()    { return auth.currentUser; }  // sync, returns null if not signed in
-
-// ── USER PROFILE ─────────────────────────────────────────────────────────────
-async function saveProfile(uid, data) {
-    if (!uid) throw new Error('[FB] saveProfile: uid is required');
-    // BUG 3 FIX: filter out undefined values — Firebase rejects them
-    const clean = Object.fromEntries(
-        Object.entries(data).filter(([, v]) => v !== undefined && v !== null)
-    );
-    await db.ref(`users/${uid}`).update(clean);
-}
-
+// ── PROFILE ───────────────────────────────────────────────────────────────────
 async function getProfile(uid) {
     if (!uid) return {};
     try {
         const snap = await db.ref(`users/${uid}`).get();
-        return snap.exists() ? snap.val() : {};
+        return snap.exists() ? (snap.val() || {}) : {};
     } catch (e) {
-        console.warn('[FB] getProfile failed:', e.message);
+        _logPermError('getProfile', e);
         return {};
     }
 }
 
-// ── GAME TIMES ───────────────────────────────────────────────────────────────
-function levelRef(uid, game, level) {
-    // BUG 4 FIX: sanitise game name — spaces/slashes break Firebase paths
-    const safeGame = game.replace(/[.#$[\]/\s]/g, '_');
-    return db.ref(`users/${uid}/games/${safeGame}/Level_${level}`);
+async function saveProfile(uid, data) {
+    if (!uid) throw new Error('[FB] saveProfile: uid required');
+    // Strip undefined/null — Firebase rejects them and kills the write
+    const clean = Object.fromEntries(
+        Object.entries(data).filter(([, v]) => v != null && v !== undefined)
+    );
+    await db.ref(`users/${uid}`).update(clean);
 }
 
+// Returns just the username string (or '' if not set)
+async function getUsername(uid) {
+    if (!uid) return '';
+    try {
+        const snap = await db.ref(`users/${uid}/username`).get();
+        return snap.exists() ? snap.val() : '';
+    } catch (e) {
+        _logPermError('getUsername', e);
+        return '';
+    }
+}
+
+// Sets just the username
+async function setUsername(uid, username) {
+    if (!uid)                        throw new Error('[FB] setUsername: uid required');
+    if (!username || username.length < 2) throw new Error('Username must be at least 2 characters');
+    await db.ref(`users/${uid}/username`).set(username.trim());
+    // Also update leaderboard entries so name shows correctly
+    try {
+        const gamesSnap = await db.ref(`users/${uid}/games/CubePlatformer`).get();
+        if (gamesSnap.exists()) {
+            const updates = {};
+            gamesSnap.forEach(lvlSnap => {
+                const lvlNum = lvlSnap.key.replace('Level_', '');
+                updates[`leaderboard/CubePlatformer/${lvlNum}/${uid}/username`] = username.trim();
+            });
+            if (Object.keys(updates).length) await db.ref().update(updates);
+        }
+    } catch (_) { /* non-critical */ }
+}
+
+// ── GAME TIMES ────────────────────────────────────────────────────────────────
+// Saves best time; also writes to /leaderboard/ for fast global reads
 // Returns: 'saved' | 'not_best' | 'error'
 async function saveTime(uid, game, level, seconds) {
-    if (!uid)  { console.warn('[FB] saveTime: no uid'); return 'error'; }
-    if (!game) { console.warn('[FB] saveTime: no game'); return 'error'; }
+    if (!uid) { console.warn('[FB] saveTime: no uid — user not signed in'); return 'error'; }
 
     try {
-        const ref  = levelRef(uid, game, level);
-        const snap = await ref.get();
-        const t    = parseFloat(seconds.toFixed(3));
+        const safeGame = _safe(game);
+        const userRef  = db.ref(`users/${uid}/games/${safeGame}/Level_${level}`);
+        const snap     = await userRef.get();
+        const t        = parseFloat(seconds.toFixed(3));
 
         if (!snap.exists() || t < snap.val().time) {
-            await ref.set({ time: t, ts: Date.now() });
-            console.log(`[FB] ✓ Saved Level ${level}: ${t}s`);
+            // Get username for leaderboard entry
+            const profile  = await getProfile(uid);
+            const username = profile.username || currentUser()?.displayName || 'Anonymous';
+            const photoURL = profile.photoURL || currentUser()?.photoURL    || '';
+
+            // Write both simultaneously
+            await db.ref().update({
+                [`users/${uid}/games/${safeGame}/Level_${level}`]: { time: t, ts: Date.now() },
+                [`leaderboard/${safeGame}/${level}/${uid}`]:       { time: t, ts: Date.now(), username, photoURL }
+            });
+
+            console.log(`[FB] ✓ New best – Level ${level}: ${t}s`);
             return 'saved';
         }
-        console.log(`[FB] Not a PB (${t}s vs ${snap.val().time}s)`);
+
+        console.log(`[FB] Not a PB (${t}s, best is ${snap.val().time}s)`);
         return 'not_best';
+
     } catch (e) {
-        // BUG 5 FIX: expose the real error — 99% of the time this is a
-        // Firebase Realtime Database RULES rejection (PERMISSION_DENIED).
-        // Fix: go to Firebase Console → Realtime Database → Rules and set:
-        // {
-        //   "rules": {
-        //     "users": {
-        //       "$uid": {
-        //         ".read":  "$uid === auth.uid",
-        //         ".write": "$uid === auth.uid"
-        //       }
-        //     }
-        //   }
-        // }
-        console.error('[FB] saveTime FAILED:', e.code, e.message);
-        if (e.code === 'PERMISSION_DENIED') {
-            console.error(
-                '[FB] → PERMISSION_DENIED: your Firebase Realtime Database rules are blocking writes.\n' +
-                '       Go to: Firebase Console → Realtime Database → Rules\n' +
-                '       Set rules to allow authenticated users to write their own data.'
-            );
-        }
+        _logPermError('saveTime', e);
         return 'error';
     }
 }
 
-// Get all level times for one user+game
-async function getMyTimes(uid, game) {
+// Returns best times keyed as { level_1: time, level_2: time, ... }
+// (lowercase keys match game.html's bestTimes['level_'+i] lookups)
+async function getBestTimes(uid) {
     if (!uid) return {};
     try {
-        const safeGame = game.replace(/[.#$[\]/\s]/g, '_');
-        const snap = await db.ref(`users/${uid}/games/${safeGame}`).get();
-        return snap.exists() ? snap.val() : {};
+        const snap = await db.ref(`users/${uid}/games/CubePlatformer`).get();
+        if (!snap.exists()) return {};
+        const result = {};
+        snap.forEach(child => {
+            // child.key is "Level_1" — normalise to lowercase "level_1"
+            result[child.key.toLowerCase()] = child.val().time;
+        });
+        return result;
     } catch (e) {
-        console.warn('[FB] getMyTimes failed:', e.message);
+        _logPermError('getBestTimes', e);
         return {};
     }
 }
 
-// ── LEADERBOARD ──────────────────────────────────────────────────────────────
-async function getAllTimesForLevel(game, level) {
+// Raw level data for a game
+async function getMyTimes(uid, game) {
+    if (!uid) return {};
     try {
-        const safeGame = game.replace(/[.#$[\]/\s]/g, '_');
-        const usersSnap = await db.ref('users').get();
-        if (!usersSnap.exists()) return [];
+        const snap = await db.ref(`users/${uid}/games/${_safe(game)}`).get();
+        return snap.exists() ? snap.val() : {};
+    } catch (e) {
+        console.warn('[FB] getMyTimes:', e.message);
+        return {};
+    }
+}
+
+// ── LEADERBOARD ───────────────────────────────────────────────────────────────
+// Reads from /leaderboard/ — fast, no full user scan needed
+// Returns [{uid, username, photoURL, time, ts}, ...] sorted by time asc
+async function getLeaderboard(levelNum, limit = 100) {
+    try {
+        const snap = await db.ref(`leaderboard/CubePlatformer/${levelNum}`)
+            .orderByChild('time')
+            .limitToFirst(limit)
+            .get();
+
+        if (!snap.exists()) return [];
 
         const rows = [];
-        usersSnap.forEach(userSnap => {
-            const uid      = userSnap.key;
-            const val      = userSnap.val() || {};
-            const username = val.username  || 'Anonymous';
-            const photoURL = val.photoURL  || '';
-            const entry    = (val.games?.[safeGame])?.[`Level_${level}`];
-            if (entry?.time != null) {
-                rows.push({ uid, username, photoURL, time: entry.time, ts: entry.ts });
-            }
+        snap.forEach(child => {
+            const v = child.val();
+            rows.push({
+                uid:      child.key,
+                username: v.username || 'Anonymous',
+                photoURL: v.photoURL || '',
+                time:     v.time,
+                ts:       v.ts
+            });
         });
 
         rows.sort((a, b) => a.time - b.time);
         return rows;
     } catch (e) {
-        console.warn('[FB] getAllTimesForLevel failed:', e.message);
+        // Fallback: read from users/ if leaderboard/ path doesn't exist yet
+        console.warn('[FB] getLeaderboard (leaderboard/ path):', e.message, '— falling back to users/');
+        return _leaderboardFallback(levelNum, limit);
+    }
+}
+
+// Fallback: read all users (slower, for old data before leaderboard/ existed)
+async function _leaderboardFallback(levelNum, limit) {
+    try {
+        const snap = await db.ref('users').get();
+        if (!snap.exists()) return [];
+        const rows = [];
+        snap.forEach(userSnap => {
+            const v     = userSnap.val() || {};
+            const entry = v.games?.CubePlatformer?.[`Level_${levelNum}`];
+            if (entry?.time != null) {
+                rows.push({
+                    uid:      userSnap.key,
+                    username: v.username || 'Anonymous',
+                    photoURL: v.photoURL || '',
+                    time:     entry.time,
+                    ts:       entry.ts
+                });
+            }
+        });
+        rows.sort((a, b) => a.time - b.time);
+        return rows.slice(0, limit);
+    } catch (e) {
+        _logPermError('_leaderboardFallback', e);
         return [];
     }
 }
 
-// ── EXPORTED NAMESPACE ───────────────────────────────────────────────────────
+// Backwards-compat alias
+async function getAllTimesForLevel(game, level) {
+    return getLeaderboard(level);
+}
+
+// ── EXPORT ────────────────────────────────────────────────────────────────────
 window.FB = {
-    signInGoogle,
-    signOut,
-    onAuthChange,
-    currentUser,
-    saveProfile,
-    getProfile,
-    saveTime,
-    getMyTimes,
-    getAllTimesForLevel
+    // Auth
+    signInGoogle, signOut, onAuthChange, currentUser,
+    // Profile
+    getProfile, saveProfile, getUsername, setUsername,
+    // Times
+    saveTime, getBestTimes, getMyTimes,
+    // Leaderboard
+    getLeaderboard, getAllTimesForLevel
 };
 
 console.log('[FB] firebase.js loaded ✓');
