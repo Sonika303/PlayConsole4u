@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard · PlayConsole4u</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#08080f;--card:#0f0f1c;--bord:rgba(255,255,255,.1);--text:#f0f0ff;--soft:#7777aa}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* Accents per level */
+:root{
+  --ac1:#f97316;--ac2:#22c55e;--ac3:#f43f5e;--ac4:#06b6d4;--ac5:#a855f7;
+  --ac6:#eab308;--ac7:#38bdf8;--ac8:#f97316;--ac9:#84cc16;--ac10:#818cf8;
+}
+
+/* ── HEADER ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 32px;border-bottom:1px solid var(--bord);
+}
+.logo{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:900;letter-spacing:3px;color:#a78bfa;text-decoration:none}
+.logo-box{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#a78bfa);display:flex;align-items:center;justify-content:center;font-size:15px}
+.back-lnk{font-size:11px;font-weight:800;letter-spacing:2px;color:var(--soft);text-decoration:none;transition:.2s}
+.back-lnk:hover{color:#a78bfa}
+
+/* ── PAGE BODY ── */
+.page{max-width:860px;margin:0 auto;padding:36px 20px 80px}
+
+.page-title{font-size:11px;font-weight:800;letter-spacing:4px;color:#a78bfa;opacity:.7;text-transform:uppercase;margin-bottom:10px}
+h1{font-size:36px;font-weight:900;letter-spacing:2px;margin-bottom:6px}
+.page-sub{font-size:13px;color:var(--soft);margin-bottom:32px}
+
+/* ── LEVEL TABS ── */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.tab{
+  padding:7px 14px;border-radius:99px;
+  font-size:11px;font-weight:800;letter-spacing:1px;
+  border:1.5px solid var(--bord);background:transparent;
+  color:var(--soft);cursor:pointer;font-family:'Nunito',sans-serif;
+  transition:.18s;
+}
+.tab:hover{border-color:rgba(255,255,255,.25);color:var(--text)}
+.tab.active{color:#fff;border-color:var(--ac);background:color-mix(in srgb,var(--ac) 18%,transparent)}
+
+/* ── TABLE ── */
+.lb-wrap{background:var(--card);border:1px solid var(--bord);border-radius:16px;overflow:hidden;margin-bottom:24px}
+.lb-head{
+  display:grid;grid-template-columns:44px 1fr 90px 80px;
+  padding:12px 20px;
+  background:rgba(255,255,255,.04);
+  border-bottom:1px solid var(--bord);
+  font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--soft);
+}
+.lb-row{
+  display:grid;grid-template-columns:44px 1fr 90px 80px;
+  padding:13px 20px;border-bottom:1px solid rgba(255,255,255,.05);
+  align-items:center;transition:background .15s;
+}
+.lb-row:last-child{border-bottom:none}
+.lb-row:hover{background:rgba(255,255,255,.03)}
+.lb-row.me{background:color-mix(in srgb,var(--ac) 10%,transparent) !important;border-left:3px solid var(--ac)}
+
+.rank{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--soft);text-align:center}
+.rank.gold{color:#f59e0b;font-size:15px}
+.rank.silver{color:#94a3b8;font-size:15px}
+.rank.bronze{color:#b45309;font-size:15px}
+
+.player-info{display:flex;align-items:center;gap:10px}
+.player-info img{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.1);flex-shrink:0}
+.player-name{font-size:13px;font-weight:800;color:var(--text)}
+.player-you{font-size:9px;font-weight:800;letter-spacing:1px;background:var(--ac);color:#fff;padding:2px 6px;border-radius:99px;margin-left:6px}
+
+.time-cell{font-family:'Space Mono',monospace;font-size:13px;color:var(--ac);text-align:right}
+.date-cell{font-size:10px;color:var(--soft);text-align:right}
+
+/* Empty / loading states */
+.lb-empty{padding:48px;text-align:center;color:var(--soft);font-size:13px;font-weight:700}
+.lb-loading{padding:48px;text-align:center;color:var(--soft);font-size:12px;letter-spacing:2px;animation:blink 1.2s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── PAGINATION ── */
+.pagination{display:flex;align-items:center;justify-content:center;gap:8px}
+.pg-btn{
+  padding:8px 16px;border-radius:8px;border:1.5px solid var(--bord);
+  background:transparent;color:var(--soft);font-family:'Nunito',sans-serif;
+  font-size:12px;font-weight:800;cursor:pointer;transition:.18s;
+}
+.pg-btn:hover:not(:disabled){border-color:rgba(255,255,255,.3);color:var(--text)}
+.pg-btn:disabled{opacity:.25;cursor:not-allowed}
+.pg-info{font-size:12px;font-weight:700;color:var(--soft);padding:0 8px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="logo" href="index.html"><div class="logo-box">🎮</div>PLAYCONSOLE4U</a>
+  <a class="back-lnk" href="index.html">← BACK TO HOME</a>
+</div>
+
+<div class="page">
+  <div class="page-title">// Leaderboard</div>
+  <h1>🏆 Top Times</h1>
+  <p class="page-sub">Best completion times per level. Updated in real-time.</p>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="lb-wrap" id="lb-wrap">
+    <div class="lb-loading">LOADING…</div>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- Firebase compat SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="firebase.js"></script>
+
+<script>
+const ACCENTS={1:'#f97316',2:'#22c55e',3:'#f43f5e',4:'#06b6d4',5:'#a855f7',
+               6:'#eab308',7:'#38bdf8',8:'#f97316',9:'#84cc16',10:'#818cf8'};
+const NAMES={1:'Sunrise Steps',2:'Wall Rider',3:'Coral Caves',4:'Ocean Deep',
+             5:'Neon District',6:'Golden Ruins',7:'Frozen Peaks',8:'Lava Flow',
+             9:'Toxic Swamp',10:'Final Frontier'};
+
+const PER_PAGE = 10;
+let currentLevel = 1;
+let allRows = [];
+let currentPage = 1;
+let currentUid = null;
+
+// Set CSS var for accent
+function setAccent(ac){ document.documentElement.style.setProperty('--ac', ac) }
+
+// Format seconds
+function fmt(s){
+  if(s==null)return'—';
+  return s<60?s.toFixed(3)+'s':`${Math.floor(s/60)}m ${(s%60).toFixed(3)}s`;
+}
+
+// Format timestamp
+function fmtDate(ts){
+  if(!ts)return'';
+  const d=new Date(ts);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+
+function rankLabel(i){
+  if(i===0)return'<span class="rank gold">🥇</span>';
+  if(i===1)return'<span class="rank silver">🥈</span>';
+  if(i===2)return'<span class="rank bronze">🥉</span>';
+  return`<span class="rank">#${i+1}</span>`;
+}
+
+// Build tabs
+function buildTabs(){
+  const tabsEl=document.getElementById('tabs');
+  tabsEl.innerHTML='';
+  for(let i=1;i<=10;i++){
+    const btn=document.createElement('button');
+    btn.className='tab'+(i===currentLevel?' active':'');
+    btn.textContent=`${i}. ${NAMES[i]}`;
+    btn.onclick=()=>loadLevel(i);
+    tabsEl.appendChild(btn);
+  }
+}
+
+// Render current page
+function renderPage(){
+  const wrap=document.getElementById('lb-wrap');
+  const start=(currentPage-1)*PER_PAGE;
+  const slice=allRows.slice(start,start+PER_PAGE);
+
+  if(!allRows.length){
+    wrap.innerHTML='<div class="lb-empty">No times recorded yet for this level. Be the first!</div>';
+    document.getElementById('pagination').innerHTML='';
+    return;
+  }
+
+  let html=`<div class="lb-head"><div>Rank</div><div>Player</div><div style="text-align:right">Time</div><div style="text-align:right">Date</div></div>`;
+  slice.forEach((row,idx)=>{
+    const globalIdx=start+idx;
+    const isMe=row.uid===currentUid;
+    html+=`<div class="lb-row${isMe?' me':''}">
+      ${rankLabel(globalIdx)}
+      <div class="player-info">
+        <div class="player-name">${escHtml(row.username||'Anonymous')}${isMe?'<span class="player-you">YOU</span>':''}</div>
+      </div>
+      <div class="time-cell">${fmt(row.time)}</div>
+      <div class="date-cell">${fmtDate(row.ts)}</div>
+    </div>`;
+  });
+  wrap.innerHTML=html;
+  renderPagination();
+}
+
+function renderPagination(){
+  const total=Math.ceil(allRows.length/PER_PAGE);
+  const pg=document.getElementById('pagination');
+  if(total<=1){pg.innerHTML='';return}
+  pg.innerHTML=`
+    <button class="pg-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>← Prev</button>
+    <span class="pg-info">Page ${currentPage} / ${total} &nbsp;·&nbsp; ${allRows.length} entries</span>
+    <button class="pg-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>Next →</button>`;
+}
+
+function goPage(p){
+  const total=Math.ceil(allRows.length/PER_PAGE);
+  if(p<1||p>total)return;
+  currentPage=p;
+  renderPage();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function loadLevel(n){
+  currentLevel=n;currentPage=1;
+  setAccent(ACCENTS[n]);
+  buildTabs();
+  document.getElementById('lb-wrap').innerHTML='<div class="lb-loading">LOADING…</div>';
+  document.getElementById('pagination').innerHTML='';
+  try{
+    allRows=await window.FB.getLeaderboard(n,200);
+    renderPage();
+  }catch(e){
+    document.getElementById('lb-wrap').innerHTML='<div class="lb-empty">Failed to load. Check connection.</div>';
+  }
+}
+
+function escHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Init
+setAccent(ACCENTS[1]);
+buildTabs();
+window.FB.onAuthChange(user=>{
+  currentUid=user?user.uid:null;
+  loadLevel(currentLevel);
+});
+</script>
+</body>
+</html>
