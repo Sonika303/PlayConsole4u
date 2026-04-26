@@ -11,67 +11,41 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
 
-/* LOADER */
 #loader{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s}
 #loader h2{font-size:20px;font-weight:900;letter-spacing:4px;color:var(--b4)}
 .ltrack{width:200px;height:3px;background:#1a1a2e;border-radius:99px;overflow:hidden}
 .lfill{height:100%;width:0;background:linear-gradient(90deg,var(--b5),var(--b4));animation:lf 1.6s ease forwards}
 @keyframes lf{to{width:100%}}
 
-/* BG VIDEO */
 #bg-video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.3;transform:translateZ(0);will-change:opacity;transition:opacity .6s}
 #bg-overlay{position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(135deg,rgba(8,8,15,.8),rgba(8,8,15,.55))}
 #bg-game-img{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;opacity:0;filter:brightness(.35) saturate(.4);transform:translateZ(0);will-change:opacity;transition:opacity .65s}
 
-/* LAYOUT */
 .wrap{position:relative;z-index:10;height:100vh;display:flex;flex-direction:column;padding:28px 40px}
 
-/* HEADER */
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:36px}
 .logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:900;letter-spacing:3px;color:var(--b4)}
 .logo-box{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--b5),var(--b4));display:flex;align-items:center;justify-content:center;font-size:17px;animation:fl 3s ease-in-out infinite;will-change:transform}
 @keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 
-/* AUTH AREA */
 .auth-area{display:flex;align-items:center;gap:10px}
 
-/* Sign in button */
-.sign-in-btn{
-  display:flex;align-items:center;gap:8px;
-  background:#fff;color:#1a1a1a;
-  border:none;padding:8px 16px;border-radius:10px;
-  font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;letter-spacing:1px;
-  cursor:pointer;transition:.2s;
-}
+.sign-in-btn{display:flex;align-items:center;gap:8px;background:#fff;color:#1a1a1a;border:none;padding:8px 16px;border-radius:10px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:.2s}
 .sign-in-btn:hover{background:#f0f0f0}
 .sign-in-btn img{width:16px;height:16px}
 
-/* User chip (shown when logged in) */
-.user-chip{
-  display:none;align-items:center;gap:8px;
-  background:rgba(124,58,237,.15);
-  border:1.5px solid var(--bord);
-  border-radius:99px;padding:5px 12px 5px 5px;cursor:pointer;transition:.2s;
-}
+.user-chip{display:none;align-items:center;gap:8px;background:rgba(124,58,237,.15);border:1.5px solid var(--bord);border-radius:99px;padding:5px 12px 5px 5px;cursor:pointer;transition:.2s}
 .user-chip:hover{background:rgba(124,58,237,.25);border-color:var(--b4)}
 .user-chip img{width:26px;height:26px;border-radius:50%;border:2px solid var(--b4)}
 .user-chip .uname{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--b4)}
 
-/* Settings gear */
-.settings-btn{
-  width:34px;height:34px;border-radius:9px;border:1.5px solid var(--bord);
-  background:rgba(124,58,237,.1);color:var(--soft);
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;transition:.2s;font-size:15px;
-}
+.settings-btn{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--bord);background:rgba(124,58,237,.1);color:var(--soft);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;font-size:15px}
 .settings-btn:hover{background:rgba(124,58,237,.25);border-color:var(--b4);color:var(--b4)}
 
-/* ONLINE BADGE */
 .badge{font-size:11px;font-weight:700;background:rgba(124,58,237,.1);color:var(--b4);padding:5px 13px;border-radius:99px;letter-spacing:1px;border:1.5px solid var(--bord);display:flex;align-items:center;gap:6px}
 .dot{width:6px;height:6px;border-radius:50%;background:#22c55e;animation:dp 2s ease infinite;will-change:box-shadow}
 @keyframes dp{0%,100%{box-shadow:0 0 0 3px rgba(34,197,94,.2)}50%{box-shadow:0 0 0 7px rgba(34,197,94,0)}}
 
-/* CARDS */
 .slabel{font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:var(--b4);opacity:.7;margin-bottom:16px}
 .grid{display:flex;gap:18px;flex-wrap:wrap}
 .card{width:270px;height:162px;background:var(--card);border:2px solid var(--bord);border-radius:18px;overflow:hidden;position:relative;cursor:pointer;transition:transform .2s,border-color .2s;will-change:transform}
@@ -88,11 +62,9 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .card.active{border-color:var(--b4)}
 .hint{margin-top:auto;font-size:11px;font-weight:700;letter-spacing:2px;color:rgba(167,139,250,.25)}
 
-/* VEIL */
 #sb-veil{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s}
 #sb-veil.on{background:rgba(0,0,0,.6);pointer-events:all}
 
-/* SIDEBAR */
 #sidebar{position:fixed;top:0;right:0;height:100%;width:0;overflow:hidden;background:#0c0c18;border-left:2px solid transparent;display:flex;flex-direction:column;transition:width .32s cubic-bezier(.4,0,.2,1),border-color .32s,padding .32s;z-index:200;will-change:width}
 #sidebar.open{width:360px;border-left-color:var(--bord);padding:28px 22px}
 .sb-x{align-self:flex-end;flex-shrink:0;width:32px;height:32px;border-radius:8px;border:1.5px solid var(--bord);background:transparent;font-size:13px;cursor:pointer;color:var(--soft);display:flex;align-items:center;justify-content:center;transition:.2s}
@@ -106,8 +78,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .sb-play{background:linear-gradient(135deg,var(--b5),var(--b4));color:#fff;border:none;padding:15px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;letter-spacing:3px;border-radius:12px;cursor:pointer;margin-top:auto;flex-shrink:0;transition:.2s}
 .sb-play:hover{filter:brightness(1.1)}
 
-/* ── SETTINGS MODAL ── */
-#modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);align-items:center;justify-content:center}
+/* SETTINGS MODAL */
+#modal-bg{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.75);align-items:center;justify-content:center}
 #modal-bg.open{display:flex}
 .modal{background:#0f0f1c;border:2px solid var(--bord);border-radius:20px;padding:32px;width:360px;display:flex;flex-direction:column;gap:18px}
 .modal h2{font-size:18px;font-weight:900;letter-spacing:2px;color:var(--b4);margin-bottom:4px}
@@ -123,17 +95,25 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .mbtn.ghost{background:rgba(255,255,255,.05);color:var(--soft);border:1.5px solid var(--bord)}
 .mbtn.ghost:hover{background:rgba(255,255,255,.1)}
 .modal-msg{font-size:12px;font-weight:700;text-align:center;min-height:18px}
-.modal-msg.ok{color:#4ade80}
-.modal-msg.err{color:#f87171}
+.modal-msg.ok{color:#4ade80}.modal-msg.err{color:#f87171}
 .modal-divider{border:none;border-top:1px solid var(--bord);margin:0}
 .modal-stat{display:flex;justify-content:space-between;font-size:12px}
 .modal-stat span:first-child{color:var(--soft);font-weight:700}
 .modal-stat span:last-child{color:var(--text);font-weight:800}
+
+/* TOAST */
+#fb-toast{position:fixed;top:60px;right:18px;z-index:9999;padding:10px 18px;border-radius:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:#fff;opacity:0;transition:opacity .3s;box-shadow:0 4px 16px rgba(0,0,0,.4);pointer-events:none;max-width:260px;text-align:center}
 </style>
 </head>
 <body>
 
-<div id="loader"><div class="logo-box">🎮</div><h2>PLAYCONSOLE4U</h2><div class="ltrack"><div class="lfill"></div></div></div>
+<div id="fb-toast"></div>
+
+<div id="loader">
+  <div class="logo-box">🎮</div>
+  <h2>PLAYCONSOLE4U</h2>
+  <div class="ltrack"><div class="lfill"></div></div>
+</div>
 
 <video id="bg-video" muted loop playsinline><source src="videos/intro.mp4" type="video/mp4"></video>
 <img id="bg-game-img" src="" alt="">
@@ -143,12 +123,10 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   <header>
     <div class="logo"><div class="logo-box">🎮</div>PLAYCONSOLE4U</div>
     <div class="auth-area">
-      <!-- Shown when logged out -->
       <button class="sign-in-btn" id="sign-in-btn" onclick="doSignIn()">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
         Sign in with Google
       </button>
-      <!-- Shown when logged in -->
       <div class="user-chip" id="user-chip" onclick="openSettings()">
         <img id="user-avatar" src="" alt="">
         <span class="uname" id="user-name-display">Player</span>
@@ -168,7 +146,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
       <div class="cbody"><div class="ctag">● READY</div><div class="cname">CUBE PLATFORMER</div></div>
     </div>
   </div>
-  <div class="hint">CLICK A GAME · THEN PRESS PLAY</div>
+  <div class="hint">CLICK A GAME · THEN PRESS PLAY &nbsp;·&nbsp; <a href="leaderboard.html" style="color:rgba(167,139,250,.4);text-decoration:none;font-weight:800;letter-spacing:2px;">🏆 LEADERBOARD</a></div>
 </div>
 
 <div id="sb-veil" onclick="closeSB()"></div>
@@ -182,32 +160,25 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 </div>
 
 <!-- SETTINGS MODAL -->
-<div id="modal-bg" onclick="e=>e.target===this&&closeSettings()">
-  <div class="modal" onclick="e=>e.stopPropagation()">
+<!-- FIX: removed invalid onclick="e=>..." arrow-function attribute — handled in JS below -->
+<div id="modal-bg">
+  <div class="modal" id="modal-inner">
     <h2>⚙ Settings</h2>
-
-    <!-- Username -->
     <div>
       <label>Username</label>
       <input id="username-input" type="text" maxlength="20" placeholder="Enter username…">
     </div>
     <button class="mbtn primary" onclick="saveUsername()">Save Username</button>
     <div class="modal-msg" id="modal-msg"></div>
-
     <hr class="modal-divider">
-
-    <!-- Stats -->
     <div>
       <label>Your Stats</label>
-      <div style="display:flex;flex-direction:column;gap:6px" id="stats-area">
+      <div style="display:flex;flex-direction:column;gap:6px">
         <div class="modal-stat"><span>Levels Completed</span><span id="stat-done">—</span></div>
         <div class="modal-stat"><span>Account</span><span id="stat-email">—</span></div>
       </div>
     </div>
-
     <hr class="modal-divider">
-
-    <!-- Actions -->
     <div class="modal-row">
       <button class="mbtn ghost" onclick="closeSettings()">Close</button>
       <button class="mbtn danger" onclick="doSignOut()">🚪 Logout</button>
@@ -215,17 +186,15 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   </div>
 </div>
 
-<!-- Firebase compat SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="firebase.js"></script>
-
 <script>
 const vid=document.getElementById('bg-video');
 const bgi=document.getElementById('bg-game-img');
 const ldr=document.getElementById('loader');
-let gone=false,goHref='';
+let gone=false, goHref='';
 
 function hideLdr(){if(gone)return;gone=true;ldr.style.opacity='0';setTimeout(()=>ldr.style.display='none',500)}
 vid.addEventListener('canplay',()=>vid.play().then(hideLdr).catch(hideLdr));
@@ -233,7 +202,7 @@ setTimeout(hideLdr,2500);
 document.addEventListener('click',()=>{if(vid.paused)vid.play().catch(()=>{})},{passive:true});
 vid.addEventListener('timeupdate',()=>{if(vid.currentTime>=8)vid.pause()});
 
-// ── SIDEBAR ──
+// ── SIDEBAR ──────────────────────────────────────────────────────────────────
 let activeC=null;
 function openSB(el,t,d,img,href,tags){
   if(activeC)activeC.classList.remove('active');
@@ -245,20 +214,20 @@ function openSB(el,t,d,img,href,tags){
   goHref=href;
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sb-veil').classList.add('on');
-  bgi.src=img;bgi.style.opacity='1';vid.style.opacity='.08';
+  bgi.src=img; bgi.style.opacity='1'; vid.style.opacity='.08';
 }
 function closeSB(){
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sb-veil').classList.remove('on');
   if(activeC){activeC.classList.remove('active');activeC=null;}
-  bgi.style.opacity='0';vid.style.opacity='.3';
+  bgi.style.opacity='0'; vid.style.opacity='.3';
 }
 document.getElementById('sbp').onclick=()=>{if(goHref)location.href=goHref};
 
-// ── AUTH ──
+// ── AUTH ──────────────────────────────────────────────────────────────────────
 async function doSignIn(){
   try{ await window.FB.signInGoogle(); }
-  catch(e){ console.error(e); }
+  catch(e){ console.error('[index] signIn error:',e); showToast('Sign-in failed','#ef4444'); }
 }
 async function doSignOut(){
   await window.FB.signOut();
@@ -274,15 +243,14 @@ window.FB.onAuthChange(async user=>{
     chip.style.display='flex';
     settingsBtn.style.display='flex';
     document.getElementById('user-avatar').src=user.photoURL||'';
-    // Fetch username
+    // onAuthChange already ran _ensureProfile — safe to read
     const uname=await window.FB.getUsername(user.uid);
-    document.getElementById('user-name-display').textContent=uname||user.displayName||'Player';
+    const displayName=uname||user.displayName||'Player';
+    document.getElementById('user-name-display').textContent=displayName;
     document.getElementById('stat-email').textContent=user.email||'—';
-    // Stats
+    document.getElementById('username-input').value=uname||'';
     const bt=await window.FB.getBestTimes(user.uid);
     document.getElementById('stat-done').textContent=Object.keys(bt).length+'/10';
-    // Pre-fill username input
-    document.getElementById('username-input').value=uname||'';
   }else{
     signInBtn.style.display='flex';
     chip.style.display='none';
@@ -290,25 +258,40 @@ window.FB.onAuthChange(async user=>{
   }
 });
 
-// ── SETTINGS MODAL ──
-function openSettings(){ document.getElementById('modal-bg').classList.add('open') }
-function closeSettings(){ document.getElementById('modal-bg').classList.remove('open') }
-document.getElementById('modal-bg').addEventListener('click',function(e){
-  if(e.target===this)closeSettings();
+// ── SETTINGS MODAL ────────────────────────────────────────────────────────────
+function openSettings(){ document.getElementById('modal-bg').classList.add('open'); }
+function closeSettings(){ document.getElementById('modal-bg').classList.remove('open'); }
+
+// FIX: correct click-outside-to-close (the onclick attribute version was invalid arrow syntax)
+document.getElementById('modal-bg').addEventListener('click', function(e){
+  if(e.target===this) closeSettings();
 });
+// Prevent inner modal clicks from bubbling to the backdrop
+document.getElementById('modal-inner').addEventListener('click', e=>e.stopPropagation());
 
 async function saveUsername(){
   const u=window.FB.currentUser();
   if(!u)return;
   const val=document.getElementById('username-input').value.trim();
   const msg=document.getElementById('modal-msg');
-  if(!val||val.length<2){msg.className='modal-msg err';msg.textContent='Min 2 characters';return}
+  if(!val||val.length<2){msg.className='modal-msg err';msg.textContent='Min 2 characters';return;}
   try{
     await window.FB.setUsername(u.uid,val);
     document.getElementById('user-name-display').textContent=val;
-    msg.className='modal-msg ok';msg.textContent='✓ Username saved!';
+    msg.className='modal-msg ok';msg.textContent='✓ Saved!';
     setTimeout(()=>msg.textContent='',2500);
-  }catch(e){msg.className='modal-msg err';msg.textContent='Error saving'}
+    showToast('✓ Username saved!','#7c3aed');
+  }catch(e){
+    msg.className='modal-msg err';
+    msg.textContent=e.message||'Error saving';
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg,color='#7c3aed'){
+  const t=document.getElementById('fb-toast');
+  t.textContent=msg; t.style.background=color; t.style.opacity='1';
+  clearTimeout(t._h); t._h=setTimeout(()=>t.style.opacity='0',2800);
 }
 </script>
 </body>
