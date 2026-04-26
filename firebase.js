@@ -1,5 +1,6 @@
-// firebase.js — Auth + Realtime DB
-// Requires Firebase compat SDKs loaded before this file
+// firebase.js
+// Structure: users/{uid}/username, users/{uid}/photoURL
+//            users/{uid}/games/CubePlatformer/Level_1 = { time, ts }
 
 const firebaseConfig = {
   apiKey: "AIzaSyC_fNfUQUcdhicNNx-e0weEGURbz-mZs8g",
@@ -12,130 +13,89 @@ const firebaseConfig = {
   measurementId: "G-FFXMD1550D"
 };
 
-// Only init once
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-
 const auth = firebase.auth();
 const db   = firebase.database();
 
-// ── Helpers ───────────────────────────────────
-function requireAuth() {
-  const u = auth.currentUser;
-  if (!u) throw new Error('Not authenticated');
-  return u;
-}
-
 // ── AUTH ──────────────────────────────────────
 function signInGoogle() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  return auth.signInWithPopup(provider);
+  return auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 }
+function signOut()          { return auth.signOut(); }
+function onAuthChange(cb)   { auth.onAuthStateChanged(cb); }
+function currentUser()      { return auth.currentUser; }
 
-function signOut() {
-  return auth.signOut();
+// ── USER PROFILE ──────────────────────────────
+async function saveProfile(uid, data) {
+  // data = { username?, photoURL? }
+  await db.ref(`users/${uid}`).update(data);
 }
-
-// cb(user|null) called immediately + on every change
-function onAuthChange(cb) {
-  auth.onAuthStateChanged(cb);
-}
-
-function currentUser() {
-  return auth.currentUser;
-}
-
-// ── USERNAME ──────────────────────────────────
-async function setUsername(uid, username) {
-  requireAuth();
-  await db.ref(`users/${uid}/username`).set(username.trim());
-}
-
-async function getUsername(uid) {
+async function getProfile(uid) {
   try {
-    const snap = await db.ref(`users/${uid}/username`).get();
-    return snap.exists() ? snap.val() : null;
-  } catch (e) {
-    console.warn('getUsername failed:', e.message);
-    return null;
-  }
-}
-
-// ── BEST TIMES ────────────────────────────────
-// Saves only if it's a new personal record
-async function saveBestTime(uid, level, seconds) {
-  requireAuth();
-  const ref  = db.ref(`bestTimes/${uid}/level_${level}`);
-  try {
-    const snap = await ref.get();
-    if (!snap.exists() || seconds < snap.val()) {
-      await ref.set(parseFloat(seconds.toFixed(3)));
-      return true; // new record
-    }
-    return false;
-  } catch (e) {
-    console.warn('saveBestTime failed:', e.message);
-    return false;
-  }
-}
-
-async function getBestTimes(uid) {
-  try {
-    const snap = await db.ref(`bestTimes/${uid}`).get();
+    const snap = await db.ref(`users/${uid}`).get();
     return snap.exists() ? snap.val() : {};
-  } catch (e) {
-    console.warn('getBestTimes failed:', e.message);
-    return {};
-  }
+  } catch { return {}; }
 }
 
-// ── LEADERBOARD ───────────────────────────────
-// Submits only if it's a personal best
-async function submitLeaderboard(uid, username, level, seconds) {
-  requireAuth();
-  const ref = db.ref(`leaderboard/level_${level}/${uid}`);
-  try {
-    const snap = await ref.get();
-    const time  = parseFloat(seconds.toFixed(3));
-    if (!snap.exists() || time < snap.val().time) {
-      await ref.set({
-        username: (username || 'Anonymous').trim(),
-        time,
-        ts: Date.now()
-      });
-    }
-  } catch (e) {
-    console.warn('submitLeaderboard failed:', e.message);
-  }
+// ── GAME TIMES ────────────────────────────────
+// path: users/{uid}/games/CubePlatformer/Level_{n}
+function levelRef(uid, game, level) {
+  return db.ref(`users/${uid}/games/${game}/Level_${level}`);
 }
 
-// Returns up to `limit` entries sorted by time ASC
-async function getLeaderboard(level, limit = 200) {
+// Save only if personal best
+async function saveTime(uid, game, level, seconds) {
+  const ref  = levelRef(uid, game, level);
+  const snap = await ref.get();
+  const t    = parseFloat(seconds.toFixed(3));
+  if (!snap.exists() || t < snap.val().time) {
+    await ref.set({ time: t, ts: Date.now() });
+    return true;
+  }
+  return false;
+}
+
+// Get all level times for one user+game
+async function getMyTimes(uid, game) {
   try {
-    const snap = await db.ref(`leaderboard/level_${level}`)
-      .orderByChild('time')
-      .limitToFirst(limit)
-      .get();
-    if (!snap.exists()) return [];
+    const snap = await db.ref(`users/${uid}/games/${game}`).get();
+    return snap.exists() ? snap.val() : {};
+  } catch { return {}; }
+}
+
+// ── ALL PLAYERS TIMES (for leaderboard) ───────
+// Reads ALL users, collects their Level_N time, sorts by time
+async function getAllTimesForLevel(game, level) {
+  try {
+    // We read every user's specific level entry
+    // Firebase doesn't support cross-user queries directly,
+    // so we read users/{*}/games/{game}/Level_{level} via a shallow scan
+    const usersSnap = await db.ref('users').get();
+    if (!usersSnap.exists()) return [];
     const rows = [];
-    snap.forEach(child => rows.push({ uid: child.key, ...child.val() }));
-    // Firebase orderByChild is ASC already — return as-is
+    usersSnap.forEach(userSnap => {
+      const uid      = userSnap.key;
+      const profile  = userSnap.val();
+      const username = profile.username || 'Anonymous';
+      const photoURL = profile.photoURL || '';
+      const games    = profile.games || {};
+      const gameData = games[game] || {};
+      const entry    = gameData[`Level_${level}`];
+      if (entry && entry.time != null) {
+        rows.push({ uid, username, photoURL, time: entry.time, ts: entry.ts });
+      }
+    });
+    rows.sort((a, b) => a.time - b.time);
     return rows;
   } catch (e) {
-    console.warn('getLeaderboard failed:', e.message);
+    console.warn('getAllTimesForLevel:', e.message);
     return [];
   }
 }
 
-// ── Expose globally ───────────────────────────
 window.FB = {
-  signInGoogle,
-  signOut,
-  onAuthChange,
-  currentUser,
-  setUsername,
-  getUsername,
-  saveBestTime,
-  getBestTimes,
-  submitLeaderboard,
-  getLeaderboard
+  signInGoogle, signOut, onAuthChange, currentUser,
+  saveProfile, getProfile,
+  saveTime, getMyTimes,
+  getAllTimesForLevel
 };
