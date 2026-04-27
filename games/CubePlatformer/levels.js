@@ -7,7 +7,6 @@ const LEVELS = {
       {x:530,y:320,w:130,h:18,c:'#fb923c'},{x:720,y:260,w:130,h:18,c:'#fbbf24'},
       {x:900,y:440,w:200,h:60,c:'#7c3aed'},
     ],hazards:[],goal:{x:1050,y:390,w:28,h:50}},
-
   2:{name:'Wall Rider',w:1400,h:520,bgA:'#0a1a0a',bgB:'#0f2d1a',accent:'#22c55e',
     spawn:{x:60,y:415},
     platforms:[
@@ -16,7 +15,6 @@ const LEVELS = {
       {x:920,y:170,w:36,h:290,c:'#15803d'},{x:1080,y:350,w:120,h:18,c:'#4ade80'},
       {x:1200,y:460,w:200,h:60,c:'#166534'},
     ],hazards:[{x:240,y:490,w:70,h:18}],goal:{x:1355,y:405,w:28,h:50}},
-
   3:{name:'Coral Caves',w:1600,h:550,bgA:'#1a0a0a',bgB:'#2d0f0f',accent:'#f43f5e',
     spawn:{x:60,y:440},
     platforms:[
@@ -25,9 +23,7 @@ const LEVELS = {
       {x:595,y:180,w:36,h:300,c:'#fb7185'},{x:760,y:350,w:100,h:18,c:'#f43f5e'},
       {x:930,y:280,w:100,h:18,c:'#e11d48'},{x:1100,y:480,w:180,h:70,c:'#9f1239'},
       {x:1350,y:380,w:100,h:18,c:'#f43f5e'},{x:1480,y:480,w:120,h:70,c:'#9f1239'},
-    ],hazards:[{x:200,y:510,w:60,h:18},{x:740,y:510,w:200,h:18}],
-    goal:{x:1555,y:428,w:28,h:50}},
-
+    ],hazards:[{x:200,y:510,w:60,h:18},{x:740,y:510,w:200,h:18}],goal:{x:1555,y:428,w:28,h:50}},
   4:{name:'Ocean Deep',w:1800,h:600,bgA:'#020f1a',bgB:'#061a2e',accent:'#06b6d4',
     spawn:{x:60,y:510},
     platforms:[
@@ -37,9 +33,7 @@ const LEVELS = {
       {x:1050,y:390,w:110,h:18,c:'#06b6d4'},{x:1240,y:280,w:110,h:18,c:'#22d3ee'},
       {x:1430,y:550,w:180,h:50,c:'#0e4f6e'},{x:1590,y:200,w:36,h:350,c:'#0891b2'},
       {x:1680,y:550,w:120,h:50,c:'#0e4f6e'},
-    ],hazards:[{x:200,y:580,w:60,h:20},{x:940,y:580,w:490,h:20}],
-    goal:{x:1752,y:495,w:28,h:50}},
-
+    ],hazards:[{x:200,y:580,w:60,h:20},{x:940,y:580,w:490,h:20}],goal:{x:1752,y:495,w:28,h:50}},
   5:{name:'Neon District',w:2000,h:650,bgA:'#0a001a',bgB:'#150030',accent:'#a855f7',
     spawn:{x:60,y:570},
     platforms:[
@@ -52,7 +46,6 @@ const LEVELS = {
       {x:1690,y:270,w:36,h:340,c:'#7e22ce'},
     ],hazards:[{x:180,y:638,w:70,h:18},{x:770,y:638,w:110,h:18},{x:1440,y:638,w:220,h:18}],
     goal:{x:1950,y:555,w:28,h:50}},
-
   6:{name:'Golden Ruins',w:2200,h:650,bgA:'#1a1000',bgB:'#2d1c00',accent:'#eab308',
     spawn:{x:60,y:570},
     platforms:[
@@ -66,7 +59,6 @@ const LEVELS = {
       {x:1890,y:460,w:75,h:18,c:'#eab308'},
     ],hazards:[{x:150,y:638,w:60,h:18},{x:700,y:638,w:500,h:18},{x:1380,y:638,w:320,h:18}],
     goal:{x:2150,y:550,w:28,h:50}},
-
   7:{name:'Frozen Peaks',w:2400,h:750,bgA:'#010d1a',bgB:'#021526',accent:'#38bdf8',
     spawn:{x:60,y:680},
     platforms:[
@@ -81,7 +73,6 @@ const LEVELS = {
       {x:2200,y:710,w:200,h:40,c:'#0c4a6e'},
     ],hazards:[{x:180,y:738,w:70,h:18},{x:1000,y:738,w:400,h:18},{x:1590,y:738,w:310,h:18},{x:2100,y:738,w:100,h:18}],
     goal:{x:2350,y:650,w:28,h:50}},
-
   8:{name:'Lava Flow',w:2600,h:750,bgA:'#1a0500',bgB:'#2d0a00',accent:'#f97316',
     spawn:{x:60,y:680},
     platforms:[
@@ -96,7 +87,6 @@ const LEVELS = {
       {x:2060,y:550,w:65,h:18,c:'#f97316'},{x:2200,y:710,w:400,h:40,c:'#7c2d12'},
     ],hazards:[{x:140,y:738,w:60,h:18},{x:910,y:738,w:480,h:18},{x:1590,y:738,w:270,h:18},{x:2060,y:738,w:140,h:18}],
     goal:{x:2545,y:650,w:28,h:50}},
-
   9:{name:'Toxic Swamp',w:2800,h:800,bgA:'#071a07',bgB:'#0a2a0a',accent:'#84cc16',
     spawn:{x:60,y:730},
     platforms:[
@@ -113,7 +103,6 @@ const LEVELS = {
       {x:2690,y:570,w:80,h:18,c:'#84cc16'},
     ],hazards:[{x:140,y:790,w:60,h:18},{x:1100,y:790,w:370,h:18},{x:1630,y:790,w:320,h:18},{x:2140,y:790,w:330,h:18}],
     goal:{x:2750,y:715,w:28,h:45}},
-
   10:{name:'Final Frontier',w:3200,h:800,bgA:'#000010',bgB:'#000820',accent:'#818cf8',
     spawn:{x:60,y:730},
     platforms:[
