@@ -1,9 +1,8 @@
 // firebase.js
 // DB shape:
-//   users/{uid}/name        = "PlayerName"
-//   users/{uid}/photo       = "https://..."
-//   users/{uid}/games/CubePlatformer/L1 = { t: 12.345, ts: 1234567890 }
-//   (t = best time seconds, ts = unix timestamp)
+//   users/{uid}/name   = "PlayerName"
+//   users/{uid}/photo  = "https://..."
+//   users/{uid}/games/CubePlatformer/L1 = { t: 12.345, ts: 1713000000000 }
 
 const firebaseConfig = {
   apiKey: "AIzaSyC_fNfUQUcdhicNNx-e0weEGURbz-mZs8g",
@@ -23,17 +22,16 @@ const db   = firebase.database();
 // ── AUTH ──────────────────────────────────────
 const signInGoogle = () =>
   auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-const signOut     = () => auth.signOut();
+const signOut      = () => auth.signOut();
 const onAuthChange = cb => auth.onAuthStateChanged(cb);
 const currentUser  = () => auth.currentUser;
 
 // ── PROFILE ───────────────────────────────────
-// Called once on first login and on username save
 async function saveProfile(uid, name, photo) {
-  const update = {};
-  if (name  !== undefined) update.name  = name;
-  if (photo !== undefined) update.photo = photo;
-  await db.ref(`users/${uid}`).update(update);
+  const u = {};
+  if (name  != null) u.name  = name;
+  if (photo != null) u.photo = photo;
+  await db.ref(`users/${uid}`).update(u);
 }
 
 async function getProfile(uid) {
@@ -42,42 +40,38 @@ async function getProfile(uid) {
 }
 
 // ── SAVE LEVEL TIME ───────────────────────────
-// Saves to users/{uid}/games/CubePlatformer/L{n}
-// Only writes if it's a new personal best
-// Returns { saved: bool, isRecord: bool, prev: number|null }
+// Returns { saved, isRecord, prev }
 async function saveLevelTime(uid, levelNum, seconds) {
-  const key = `L${levelNum}`;
-  const ref = db.ref(`users/${uid}/games/CubePlatformer/${key}`);
+  const key  = `L${levelNum}`;
+  const ref  = db.ref(`users/${uid}/games/CubePlatformer/${key}`);
   const snap = await ref.get();
-  const t = Math.round(seconds * 1000) / 1000; // 3dp
+  const t    = Math.round(seconds * 1000) / 1000;
   const prev = snap.exists() ? snap.val().t : null;
-  const isRecord = prev === null || t < prev;
-  if (isRecord) {
-    await ref.set({ t, ts: Date.now() });
-  }
+  const isRecord = (prev === null || t < prev);
+  if (isRecord) await ref.set({ t, ts: Date.now() });
   return { saved: isRecord, isRecord, prev };
 }
 
 // ── GET MY TIMES ──────────────────────────────
 async function getMyTimes(uid) {
-  // returns { L1: {t,ts}, L2: {t,ts}, ... } or {}
   const snap = await db.ref(`users/${uid}/games/CubePlatformer`).get();
   return snap.exists() ? snap.val() : {};
 }
 
 // ── LEADERBOARD ───────────────────────────────
-// Reads ALL users, collects CubePlatformer/L{n}, sorts by time
+// Reads ALL users (requires auth != null in rules), extracts level entry, sorts by time.
+// THROWS on error so callers can handle it.
 async function getLeaderboard(levelNum) {
-  const key = `L${levelNum}`;
-  const snap = await db.ref('users').get();
+  const key  = `L${levelNum}`;
+  const snap = await db.ref('users').get(); // throws if permission denied
   if (!snap.exists()) return [];
   const rows = [];
   snap.forEach(child => {
-    const uid  = child.key;
-    const val  = child.val();
-    const name = val.name  || 'Anonymous';
-    const photo= val.photo || '';
-    const entry= val?.games?.CubePlatformer?.[key];
+    const uid   = child.key;
+    const val   = child.val();
+    const name  = val.name  || 'Anonymous';
+    const photo = val.photo || '';
+    const entry = val?.games?.CubePlatformer?.[key];
     if (entry && entry.t != null) {
       rows.push({ uid, name, photo, t: entry.t, ts: entry.ts || 0 });
     }
