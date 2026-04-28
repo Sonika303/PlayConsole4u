@@ -10,15 +10,14 @@ let cam, player, currentLvl, running, won, keys;
 let timerStart = 0, elapsedMs = 0;
 let activeSkin = 'default';
 let currentSkin = null;
-let particles = [];
 
 const SKINS = {
-  default: { body: null, eye: '#fff', pupil: 'rgba(0,0,0,.55)', shine: 'rgba(255,255,255,.35)', label: 'Default', jump: 1, accel: 1, air: 1, trail: '#ffffff' },
-  ghost:   { body: 'rgba(220,230,255,.75)', eye: '#c4b5fd', pupil: 'rgba(60,20,120,.6)', shine: 'rgba(255,255,255,.5)', label: 'Ghost', jump: 1.06, accel: 0.95, air: 1.08, trail: '#c4b5fd' },
-  neon:    { body: '#00ff88', eye: '#fff', pupil: '#004422', shine: 'rgba(255,255,255,.5)', label: 'Neon', jump: 1.02, accel: 1.08, air: 1.02, trail: '#00ff88' },
-  fire:    { body: '#ff4400', eye: '#ffe066', pupil: '#7a2000', shine: 'rgba(255,200,50,.45)', label: 'Fire', jump: 1.1, accel: 1.0, air: 0.98, trail: '#ff8a00' },
-  void:    { body: '#0d0d1a', eye: '#818cf8', pupil: 'rgba(0,0,0,.9)', shine: 'rgba(130,140,250,.35)', label: 'Void', jump: 1.15, accel: 0.93, air: 1.12, trail: '#818cf8' },
-  rainbow: { body: null, rainbow: true, eye: '#fff', pupil: '#333', shine: 'rgba(255,255,255,.4)', label: 'Rainbow', jump: 1.08, accel: 1.02, air: 1.0, trail: '#ffffff' }
+  default: { body: null, eye: '#fff', pupil: 'rgba(0,0,0,.55)', shine: 'rgba(255,255,255,.35)', label: 'Default', jump: 1, accel: 1, air: 1 },
+  ghost:   { body: 'rgba(220,230,255,.75)', eye: '#c4b5fd', pupil: 'rgba(60,20,120,.6)', shine: 'rgba(255,255,255,.5)', label: 'Ghost', jump: 1.06, accel: 0.95, air: 1.08 },
+  neon:    { body: '#00ff88', eye: '#fff', pupil: '#004422', shine: 'rgba(255,255,255,.5)', label: 'Neon', jump: 1.02, accel: 1.08, air: 1.02 },
+  fire:    { body: '#ff4400', eye: '#ffe066', pupil: '#7a2000', shine: 'rgba(255,200,50,.45)', label: 'Fire', jump: 1.1, accel: 1.0, air: 0.98 },
+  void:    { body: '#0d0d1a', eye: '#818cf8', pupil: 'rgba(0,0,0,.9)', shine: 'rgba(130,140,250,.35)', label: 'Void', jump: 1.15, accel: 0.93, air: 1.12 },
+  rainbow: { body: null, rainbow: true, eye: '#fff', pupil: '#333', shine: 'rgba(255,255,255,.4)', label: 'Rainbow', jump: 1.08, accel: 1.02, air: 1.0 }
 };
 
 function mkPlayer(sx, sy) {
@@ -37,48 +36,9 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { keys[e.code] = false; });
 
-function spawnParticles(x, y, type, color) {
-  const count = type === 'land' ? 8 : type === 'jump' ? 10 : 6;
-  for (let i = 0; i < count; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const s = type === 'land' ? 0.8 + Math.random() * 2.0 : 1.0 + Math.random() * 2.8;
-    particles.push({
-      x, y,
-      dx: Math.cos(a) * s + (type === 'jump' ? 0 : player.dx * 0.15),
-      dy: Math.sin(a) * s - (type === 'jump' ? 1.2 : 0.2),
-      life: 22 + Math.random() * 14,
-      max: 22 + Math.random() * 14,
-      color
-    });
-  }
-}
-
-function updateParticles() {
-  particles = particles.filter(p => {
-    p.x += p.dx;
-    p.y += p.dy;
-    p.dy += 0.06;
-    p.life -= 1;
-    return p.life > 0;
-  });
-}
-
-function drawParticles() {
-  for (const p of particles) {
-    const a = Math.max(0, p.life / p.max);
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = a;
-    ctx.beginPath();
-    ctx.arc(p.x - cam.x, p.y - cam.y, 1.5 + 2 * a, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-}
-
 function doJump() {
   const skin = currentSkin || SKINS.default;
   const jumpPow = 11.5 * skin.jump;
-
   if (player.onWall) {
     player.dy = -jumpPow;
     player.dx = -player.wallDir * 9 * skin.accel;
@@ -91,8 +51,6 @@ function doJump() {
     const d = keys['KeyD'] || keys['ArrowRight'] ? 1 : keys['KeyA'] || keys['ArrowLeft'] ? -1 : player.dx > 0 ? 1 : -1;
     player.spinSpeed = d * 0.15;
   }
-
-  spawnParticles(player.x + player.w / 2, player.y + player.h / 2, 'jump', skin.trail);
 }
 
 function setupTouch() {
@@ -107,7 +65,6 @@ function setupTouch() {
 <div id="t-dpad"><div class="tb" id="tl">◀</div><div class="tb" id="tr">▶</div></div>
 <div class="tb" id="tj">▲</div>`;
   document.body.appendChild(hud);
-
   const bind = (id, code) => {
     const el = document.getElementById(id);
     el.addEventListener('touchstart', e => { e.preventDefault(); keys[code] = true; }, { passive: false });
@@ -127,7 +84,6 @@ async function initGame(lvlNum) {
   running = true;
 
   const lvl = LEVELS[lvlNum];
-
   lvl.platforms.forEach(p => {
     if (p.moving) {
       p._t = 0;
@@ -140,7 +96,6 @@ async function initGame(lvlNum) {
   cam = { x: 0, y: 0 };
   timerStart = performance.now();
   elapsedMs = 0;
-  particles = [];
 
   const u = window.FB?.currentUser();
   if (u) {
@@ -155,7 +110,6 @@ async function initGame(lvlNum) {
   }
 
   currentSkin = SKINS[activeSkin] || SKINS.default;
-
   setupTouch();
   requestAnimationFrame(loop);
 }
@@ -194,7 +148,6 @@ function loop() {
     const prevPx = p.x, prevPy = p.y;
     if (p.moving.axis === 'x') p.x = p._ox + offset;
     else p.y = p._oy + offset;
-
     if (player.onGround) {
       const wasOnThis =
         player.x + player.w > prevPx &&
@@ -228,7 +181,6 @@ function loop() {
     const wasBelow = player.prevY >= p.y + p.h - 5;
 
     if (player.dy >= 0 && wasAbove) {
-      const wasAirborne = !player.onGround;
       player.y = p.y - player.h;
       player.dy = 0;
       player.jumps = 0;
@@ -236,7 +188,6 @@ function loop() {
       const snap = Math.round(player.rotation / (Math.PI / 2)) * (Math.PI / 2);
       player.rotation += (snap - player.rotation) * 0.25;
       player.spinSpeed = 0;
-      if (wasAirborne) spawnParticles(player.x + player.w / 2, player.y + player.h, 'land', skin.trail);
     } else if (player.dy < 0 && wasBelow) {
       player.y = p.y + p.h;
       player.dy = 0;
@@ -260,7 +211,6 @@ function loop() {
       player.y = b.y - player.h;
       player.jumps = 0;
       player.spinSpeed = (player.dx > 0 ? 1 : -1) * 0.3;
-      spawnParticles(player.x + player.w / 2, player.y + player.h, 'land', skin.trail);
     }
   }
 
@@ -303,7 +253,7 @@ function loop() {
       window.FB.getProfile(u.uid).then(prof => {
         const up = {};
         if (!prof.name) up.name = u.displayName || 'Anonymous';
-        if (!prof.photo) up.photo = u.photoURL || '';
+        if (!prof.photo) up.photo = '';
         if (Object.keys(up).length) window.FB.saveProfile(u.uid, up.name, up.photo);
       }).catch(() => {});
       window.FB.saveLevelTime(u.uid, currentLvl, secs)
@@ -315,7 +265,6 @@ function loop() {
     return;
   }
 
-  updateParticles();
   updateCam(lvl.w, lvl.h);
   draw(lvl);
   requestAnimationFrame(loop);
@@ -336,14 +285,12 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(p.x, p.y, p.w, p.h, 5);
     ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,.10)';
+    ctx.fillStyle = 'rgba(255,255,255,.08)';
     ctx.beginPath();
-    ctx.roundRect(p.x + 3, p.y + 2, p.w - 6, Math.min(5, p.h / 2), 3);
+    ctx.roundRect(p.x + 3, p.y + 2, p.w - 6, Math.min(4, p.h / 2), 3);
     ctx.fill();
-
     if (p.moving) {
-      ctx.strokeStyle = lvl.accent + '88';
+      ctx.strokeStyle = lvl.accent + '66';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(p.x + 1, p.y + 1, p.w - 2, p.h - 2, 5);
@@ -357,7 +304,6 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(b.x, b.y, b.w, b.h, 4);
     ctx.fill();
-
     const coils = 4;
     ctx.strokeStyle = lvl.accent;
     ctx.lineWidth = 2;
@@ -368,7 +314,6 @@ function draw(lvl) {
       ctx.lineTo(cx + 4, b.y + 2);
       ctx.stroke();
     }
-
     ctx.fillStyle = lvl.accent;
     ctx.font = 'bold 9px sans-serif';
     ctx.textAlign = 'center';
@@ -382,7 +327,6 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(h.x, h.y, h.w, h.h, 3);
     ctx.fill();
-
     ctx.fillStyle = '#ef4444';
     const n = Math.floor(h.w / 14);
     for (let i = 0; i < n; i++) {
@@ -410,9 +354,7 @@ function draw(lvl) {
   ctx.fillText('★', g.x + g.w / 2, g.y + g.h / 2 + 5);
   ctx.textAlign = 'left';
 
-  drawParticles();
   drawPlayer(lvl.accent);
-
   ctx.restore();
   drawHUD(lvl);
 }
@@ -420,17 +362,13 @@ function draw(lvl) {
 function drawPlayer(accent) {
   const skin = currentSkin || SKINS.default;
   const hw = player.w / 2, hh = player.h / 2;
-
   ctx.save();
   ctx.translate(player.x + hw, player.y + hh);
-
   ctx.fillStyle = 'rgba(0,0,0,.22)';
   ctx.beginPath();
   ctx.ellipse(2, hh + 4, hw + 2, 4, 0, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.rotate(player.rotation);
-
   if (skin.rainbow) {
     const rg = ctx.createLinearGradient(-hw, -hh, hw, hh);
     const t = (Date.now() % 2000) / 2000;
@@ -443,26 +381,21 @@ function drawPlayer(accent) {
   } else {
     ctx.fillStyle = skin.body || accent;
   }
-
   ctx.beginPath();
   ctx.roundRect(-hw, -hh, player.w, player.h, 4);
   ctx.fill();
-
   ctx.fillStyle = skin.shine;
   ctx.beginPath();
   ctx.roundRect(-hw + 3, -hh + 3, hw - 2, hh - 2, 3);
   ctx.fill();
-
   ctx.fillStyle = skin.eye;
   ctx.beginPath();
   ctx.arc(-3, -2, 3, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.fillStyle = skin.pupil;
   ctx.beginPath();
   ctx.arc(-3, -2, 1.5, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.restore();
 }
 
@@ -474,7 +407,7 @@ function drawHUD(lvl) {
   ctx.fill();
   ctx.fillStyle = lvl.accent;
   ctx.font = 'bold 11px Nunito,sans-serif';
-  ctx.fillText(`LVL ${currentLvl}/${MAX_LEVELS}  ·  ⏱ ${t}s  ·  SKIN: ${(currentSkin || SKINS.default).label}`, 18, 30);
+  ctx.fillText(`LVL ${currentLvl}/${MAX_LEVELS} · ⏱ ${t}s · SKIN: ${(currentSkin || SKINS.default).label}`, 18, 30);
 }
 
 function drawWin(secs, isRecord, prev) {
