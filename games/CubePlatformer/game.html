@@ -172,8 +172,8 @@ const ACCENTS = {
 function fmt(s){ return s==null ? '' : s < 60 ? s.toFixed(2) + 's' : `${Math.floor(s/60)}m ${(s%60).toFixed(0)}s`; }
 
 function getLocalProgress() {
-  const v = parseInt(sessionStorage.getItem('cube_prog') || '1');
-  return Number.isFinite(v) ? v : 1;
+  const v = parseInt(sessionStorage.getItem('cube_prog') || '1', 10);
+  return Number.isFinite(v) ? Math.max(1, Math.min(MAX_LEVELS, v)) : 1;
 }
 
 function setProgress(n) {
@@ -182,47 +182,47 @@ function setProgress(n) {
   progressLoaded = true;
 }
 
+function inferProgressFromTimes(times) {
+  const ids = Object.keys(times || {});
+  let highestCompleted = 0;
+  for (const k of ids) {
+    const m = String(k).match(/L(\d+)/i);
+    if (m) highestCompleted = Math.max(highestCompleted, parseInt(m[1], 10));
+  }
+  return Math.max(1, Math.min(MAX_LEVELS, highestCompleted + 1));
+}
+
 async function loadProgress() {
-  const u = window.FB?.currentUser();
+  const local = getLocalProgress();
+  const u = window.FB?.currentUser?.();
+
   if (!u) {
-    setProgress(getLocalProgress());
-    buildGrid();
+    setProgress(local);
+    await buildGrid();
     return;
   }
 
   try {
     const times = await window.FB.getMyTimes(u.uid);
-    const keys = Object.keys(times || {});
-    const levelNums = keys
-      .map(k => {
-        const m = String(k).match(/L(\d+)/i);
-        return m ? parseInt(m[1], 10) : 0;
-      })
-      .filter(n => Number.isFinite(n) && n > 0);
-
-    if (levelNums.length) {
-      setProgress(Math.min(MAX_LEVELS, Math.max(...levelNums)));
-    } else {
-      setProgress(getLocalProgress());
-    }
+    const inferred = inferProgressFromTimes(times);
+    setProgress(Math.max(local, inferred));
   } catch (e) {
     try {
       const prof = await window.FB.getProfile(u.uid);
-      const fbProg = parseInt(prof?.progress || prof?.highest || prof?.level || 1);
-      if (Number.isFinite(fbProg) && fbProg >= 1) setProgress(fbProg);
-      else setProgress(getLocalProgress());
+      const fbProg = parseInt(prof?.progress || prof?.highest || prof?.level || 1, 10);
+      setProgress(Math.max(local, Number.isFinite(fbProg) ? fbProg : 1));
     } catch (err) {
-      setProgress(getLocalProgress());
+      setProgress(local);
     }
   }
 
-  buildGrid();
+  await buildGrid();
 }
 
 async function buildGrid() {
   const prog = progressLoaded ? progressCache : getLocalProgress();
   let times = {};
-  const u = window.FB?.currentUser();
+  const u = window.FB?.currentUser?.();
   if (u) {
     try { times = await window.FB.getMyTimes(u.uid); } catch(e) {}
   }
