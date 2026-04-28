@@ -245,12 +245,6 @@ function loop() {
 
     const u = window.FB?.currentUser();
     if (u) {
-      window.FB.getProfile(u.uid).then(prof => {
-        const up = {};
-        if (!prof.name) up.name = u.displayName || 'Anonymous';
-        if (!prof.photo) up.photo = '';
-        if (Object.keys(up).length) window.FB.saveProfile(u.uid, up.name, up.photo);
-      }).catch(() => {});
       window.FB.saveLevelTime(u.uid, currentLvl, secs)
         .then(res => drawWin(secs, res.isRecord, res.prev))
         .catch(() => drawWin(secs, false, null));
