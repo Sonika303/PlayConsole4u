@@ -21,12 +21,7 @@ const SKINS = {
 };
 
 function mkPlayer(sx, sy) {
-  return {
-    x: sx, y: sy, w: 24, h: 24, dx: 0, dy: 0,
-    jumps: 0, maxJumps: 2, onWall: false, wallDir: 0,
-    onGround: false, prevY: sy, rotation: 0, spinSpeed: 0,
-    sx, sy
-  };
+  return { x: sx, y: sy, w: 24, h: 24, dx: 0, dy: 0, jumps: 0, maxJumps: 2, onWall: false, wallDir: 0, onGround: false, prevY: sy, rotation: 0, spinSpeed: 0, sx, sy };
 }
 
 keys = {};
@@ -149,10 +144,7 @@ function loop() {
     if (p.moving.axis === 'x') p.x = p._ox + offset;
     else p.y = p._oy + offset;
     if (player.onGround) {
-      const wasOnThis =
-        player.x + player.w > prevPx &&
-        player.x < prevPx + p.w &&
-        Math.abs((player.y + player.h) - prevPy) < 3;
+      const wasOnThis = player.x + player.w > prevPx && player.x < prevPx + p.w && Math.abs((player.y + player.h) - prevPy) < 3;
       if (wasOnThis) {
         player.x += p.x - prevPx;
         player.y += p.y - prevPy;
@@ -200,13 +192,7 @@ function loop() {
   }
 
   for (const b of lvl.bouncePads) {
-    if (
-      player.x + player.w > b.x &&
-      player.x < b.x + b.w &&
-      player.y + player.h > b.y &&
-      player.y + player.h < b.y + b.h + 12 &&
-      player.dy > 0
-    ) {
+    if (player.x + player.w > b.x && player.x < b.x + b.w && player.y + player.h > b.y && player.y + player.h < b.y + b.h + 12 && player.dy > 0) {
       player.dy = -(b.force);
       player.y = b.y - player.h;
       player.jumps = 0;
@@ -215,12 +201,7 @@ function loop() {
   }
 
   for (const h of lvl.hazards) {
-    if (
-      player.x + player.w > h.x &&
-      player.x < h.x + h.w &&
-      player.y + player.h > h.y &&
-      player.y < h.y + h.h
-    ) {
+    if (player.x + player.w > h.x && player.x < h.x + h.w && player.y + player.h > h.y && player.y < h.y + h.h) {
       resetPlayer();
       break;
     }
@@ -233,16 +214,10 @@ function loop() {
   }
 
   const g = lvl.goal;
-  if (
-    player.x + player.w > g.x &&
-    player.x < g.x + g.w &&
-    player.y + player.h > g.y &&
-    player.y < g.y + g.h
-  ) {
+  if (player.x + player.w > g.x && player.x < g.x + g.w && player.y + player.h > g.y && player.y < g.y + g.h) {
     won = true;
     running = false;
     const secs = elapsedMs / 1000;
-
     const u = window.FB?.currentUser();
     if (u) {
       window.FB.saveLevelTime(u.uid, currentLvl, secs)
@@ -274,12 +249,10 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(p.x, p.y, p.w, p.h, 5);
     ctx.fill();
-
     ctx.fillStyle = 'rgba(255,255,255,.08)';
     ctx.beginPath();
     ctx.roundRect(p.x + 3, p.y + 2, p.w - 6, Math.min(4, p.h / 2), 3);
     ctx.fill();
-
     if (p.moving) {
       ctx.strokeStyle = lvl.accent + '66';
       ctx.lineWidth = 2;
@@ -295,7 +268,6 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(b.x, b.y, b.w, b.h, 4);
     ctx.fill();
-
     const coils = 4;
     ctx.strokeStyle = lvl.accent;
     ctx.lineWidth = 2;
@@ -306,7 +278,6 @@ function draw(lvl) {
       ctx.lineTo(cx + 4, b.y + 2);
       ctx.stroke();
     }
-
     ctx.fillStyle = lvl.accent;
     ctx.font = 'bold 9px sans-serif';
     ctx.textAlign = 'center';
@@ -320,7 +291,6 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(h.x, h.y, h.w, h.h, 3);
     ctx.fill();
-
     ctx.fillStyle = '#ef4444';
     const n = Math.floor(h.w / 14);
     for (let i = 0; i < n; i++) {
@@ -359,12 +329,10 @@ function drawPlayer(accent) {
 
   ctx.save();
   ctx.translate(player.x + hw, player.y + hh);
-
   ctx.fillStyle = 'rgba(0,0,0,.22)';
   ctx.beginPath();
   ctx.ellipse(2, hh + 4, hw + 2, 4, 0, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.rotate(player.rotation);
 
   if (skin.rainbow) {
@@ -383,7 +351,6 @@ function drawPlayer(accent) {
   ctx.beginPath();
   ctx.roundRect(-hw, -hh, player.w, player.h, 4);
   ctx.fill();
-
   ctx.fillStyle = skin.shine;
   ctx.beginPath();
   ctx.roundRect(-hw + 3, -hh + 3, hw - 2, hh - 2, 3);
@@ -393,12 +360,10 @@ function drawPlayer(accent) {
   ctx.beginPath();
   ctx.arc(-3, -2, 3, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.fillStyle = skin.pupil;
   ctx.beginPath();
   ctx.arc(-3, -2, 1.5, 0, Math.PI * 2);
   ctx.fill();
-
   ctx.restore();
 }
 
@@ -417,13 +382,11 @@ function drawWin(secs, isRecord, prev) {
   const lvl = LEVELS[currentLvl];
   ctx.fillStyle = 'rgba(0,0,0,.92)';
   ctx.fillRect(0, 0, VW, VH);
-
   const grd = ctx.createRadialGradient(VW / 2, VH / 2, 0, VW / 2, VH / 2, 200);
   grd.addColorStop(0, lvl.accent + '44');
   grd.addColorStop(1, 'transparent');
   ctx.fillStyle = grd;
   ctx.fillRect(0, 0, VW, VH);
-
   ctx.textAlign = 'center';
   ctx.fillStyle = lvl.accent;
   ctx.shadowColor = lvl.accent;
@@ -431,30 +394,21 @@ function drawWin(secs, isRecord, prev) {
   ctx.font = 'bold 46px Nunito,sans-serif';
   ctx.fillText('✓  LEVEL CLEAR!', VW / 2, VH / 2 - 64);
   ctx.shadowBlur = 0;
-
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 26px Nunito,sans-serif';
   ctx.fillText('⏱  ' + secs.toFixed(3) + 's', VW / 2, VH / 2 - 18);
-
   if (isRecord) {
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 13px Nunito,sans-serif';
     ctx.fillText('🏅 NEW PERSONAL BEST!' + (prev != null ? `  (prev: ${prev.toFixed(3)}s)` : ''), VW / 2, VH / 2 + 14);
   }
-
   ctx.fillStyle = 'rgba(255,255,255,.55)';
   ctx.font = 'bold 14px Nunito,sans-serif';
-  ctx.fillText(
-    currentLvl >= MAX_LEVELS ? '🎉 YOU BEAT ALL 10 LEVELS!' : 'Level ' + (currentLvl + 1) + ' unlocked ★',
-    VW / 2,
-    VH / 2 + (isRecord ? 38 : 22)
-  );
-
+  ctx.fillText(currentLvl >= MAX_LEVELS ? '🎉 YOU BEAT ALL 10 LEVELS!' : 'Level ' + (currentLvl + 1) + ' unlocked ★', VW / 2, VH / 2 + (isRecord ? 38 : 22));
   ctx.fillStyle = 'rgba(255,255,255,.28)';
   ctx.font = '12px Nunito,sans-serif';
   ctx.fillText('Tap or click to continue', VW / 2, VH / 2 + (isRecord ? 62 : 46));
   ctx.textAlign = 'left';
-
   const back = () => location.reload();
   canvas.addEventListener('click', back, { once: true });
   canvas.addEventListener('touchend', back, { once: true });
