@@ -110,16 +110,11 @@ header{
   background:rgba(124,58,237,.24);
   border-color:#a78bfa;
 }
-#u-avatar{
-  width:24px;height:24px;border-radius:50%;
-  border:2px solid #a78bfa;object-fit:cover;
-  display:none;
-}
-#u-initial{
+.u-badge{
   width:24px;height:24px;border-radius:50%;
   background:linear-gradient(135deg,#7c3aed,#a78bfa);
   display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:11px;font-weight:900;
+  color:#fff;font-size:11px;font-weight:900;flex-shrink:0;
 }
 #user-chip .uname{
   font-size:11px;font-weight:800;color:#a78bfa;letter-spacing:.4px;
@@ -334,8 +329,7 @@ header{
       </button>
 
       <div id="user-chip" onclick="openModal()">
-        <div id="u-initial">P</div>
-        <img id="u-avatar" src="" alt="">
+        <div id="u-avatar" class="u-badge">P</div>
         <span class="uname" id="u-name">Player</span>
       </div>
 
@@ -486,29 +480,14 @@ async function refreshUI(user){
 
   const profile = await window.FB.getProfile(user.uid);
   const name = profile.name || user.displayName || 'Player';
-  const photo = profile.photo || user.photoURL || '';
 
   document.getElementById('u-name').textContent = name;
   document.getElementById('uname-inp').value = name;
   document.getElementById('m-email').textContent = user.email || '—';
 
   const av = document.getElementById('u-avatar');
-  const ini = document.getElementById('u-initial');
-
-  if(photo){
-    av.src = photo;
-    av.style.display = 'block';
-    ini.style.display = 'none';
-  }else{
-    av.style.display = 'none';
-    ini.style.display = 'flex';
-    ini.textContent = initials(name);
-    ini.style.background = `linear-gradient(135deg,hsl(${hueFor(name)} 70% 42%),hsl(${(hueFor(name)+40)%360} 75% 55%))`;
-  }
-
-  if(!profile.photo && photo) {
-    window.FB.saveProfile(user.uid, name, photo);
-  }
+  av.textContent = initials(name);
+  av.style.background = `linear-gradient(135deg,hsl(${hueFor(name)} 70% 42%),hsl(${(hueFor(name)+40)%360} 75% 55%))`;
 
   const times = await window.FB.getMyTimes(user.uid);
   document.getElementById('m-done').textContent = Object.keys(times).length + '/10';
@@ -537,21 +516,12 @@ async function saveUsername(){
     msg.textContent = 'Min 2 characters';
     return;
   }
-  await window.FB.saveProfile(u.uid, v, u.photoURL || '');
+  await window.FB.saveProfile(u.uid, v, '');
   document.getElementById('u-name').textContent = v;
 
   const av = document.getElementById('u-avatar');
-  const ini = document.getElementById('u-initial');
-  if(u.photoURL){
-    av.src = u.photoURL;
-    av.style.display = 'block';
-    ini.style.display = 'none';
-  }else{
-    av.style.display = 'none';
-    ini.style.display = 'flex';
-    ini.textContent = initials(v);
-    ini.style.background = `linear-gradient(135deg,hsl(${hueFor(v)} 70% 42%),hsl(${(hueFor(v)+40)%360} 75% 55%))`;
-  }
+  av.textContent = initials(v);
+  av.style.background = `linear-gradient(135deg,hsl(${hueFor(v)} 70% 42%),hsl(${(hueFor(v)+40)%360} 75% 55%))`;
 
   msg.className = 'mmsg ok';
   msg.textContent = '✓ Saved!';
