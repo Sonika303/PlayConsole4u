@@ -9,16 +9,12 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Nunito',sans-serif;background:#07070f;color:#f0f0ff;overflow:hidden;height:100vh}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse 50% 50% at 20% 55%,rgba(124,58,237,.1) 0%,transparent 60%),
-             radial-gradient(ellipse 40% 50% at 80% 30%,rgba(167,139,250,.06) 0%,transparent 60%)}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse 50% 50% at 20% 55%,rgba(124,58,237,.08) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 80% 30%,rgba(167,139,250,.05) 0%,transparent 60%)}
 
-/* ── MENU ── */
 #menu{position:relative;z-index:1;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
-h1{font-size:28px;font-weight:900;letter-spacing:5px;color:#fff;margin-bottom:6px;text-shadow:0 0 24px rgba(255,255,255,.2)}
+h1{font-size:28px;font-weight:900;letter-spacing:5px;color:#fff;margin-bottom:6px;text-shadow:0 0 24px rgba(255,255,255,.18)}
 .sub{font-size:10px;font-weight:700;letter-spacing:3px;color:rgba(255,255,255,.28);margin-bottom:26px;text-transform:uppercase}
 
-/* ── LEVEL GRID ── */
 .level-grid{display:grid;grid-template-columns:repeat(5,76px);gap:12px;margin-bottom:22px}
 .node{
   width:76px;height:76px;
@@ -26,15 +22,14 @@ h1{font-size:28px;font-weight:900;letter-spacing:5px;color:#fff;margin-bottom:6p
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   cursor:pointer;background:#111118;
   transition:transform .18s,border-color .18s,background .18s;
-  will-change:transform;user-select:none;position:relative;
+  user-select:none;position:relative;
 }
-/* No level names — only number, best time, icon */
 .n-num{font-size:22px;font-weight:900;color:var(--ac,#fff);line-height:1}
 .n-time{font-size:8px;font-weight:800;color:var(--ac,#aaa);margin-top:4px;opacity:.9}
 .n-icon{font-size:11px;margin-top:3px;line-height:1}
 .node:hover:not(.locked){transform:translateY(-4px);border-color:var(--ac,#fff);background:#1a1a26}
 .node.sel{
-  border-color:var(--ac,#fff) !important;background:rgba(255,255,255,.07);
+  border-color:var(--ac,#fff)!important;background:rgba(255,255,255,.07);
   box-shadow:0 0 0 3px color-mix(in srgb,var(--ac,#fff) 25%,transparent),0 8px 20px rgba(0,0,0,.4);
 }
 .node.sel::after{
@@ -46,15 +41,14 @@ h1{font-size:28px;font-weight:900;letter-spacing:5px;color:#fff;margin-bottom:6p
 .node.locked{opacity:.15;cursor:not-allowed;pointer-events:none}
 .node.done .n-icon{color:#f59e0b}
 
-/* ── BUTTON ROW ── */
 .btn-row{display:flex;gap:12px;margin-bottom:14px}
 .play-btn{
   padding:13px 64px;
   background:linear-gradient(135deg,#7c3aed,#a78bfa);
   color:#fff;border:none;font-family:'Nunito',sans-serif;
   font-size:14px;font-weight:900;letter-spacing:3px;
-  border-radius:11px;cursor:pointer;transition:.2s;will-change:transform;
-  box-shadow:0 0 24px rgba(124,58,237,.45);
+  border-radius:11px;cursor:pointer;transition:.2s;
+  box-shadow:0 0 24px rgba(124,58,237,.4)
 }
 .play-btn:hover{filter:brightness(1.1);transform:translateY(-2px)}
 .play-btn:active{transform:translateY(0)}
@@ -72,14 +66,18 @@ h1{font-size:28px;font-weight:900;letter-spacing:5px;color:#fff;margin-bottom:6p
 .lnk{font-size:10px;font-weight:700;color:rgba(255,255,255,.25);text-decoration:none;letter-spacing:2px;transition:.2s}
 .lnk:hover{color:rgba(255,255,255,.6)}
 
-/* ── GAME ── */
 #game-container{display:none;width:100%;height:100vh;position:relative;background:#07070f;align-items:center;justify-content:center}
 #game-container.visible{display:flex}
 canvas{display:block}
-.back-btn{position:absolute;top:12px;left:12px;z-index:20;background:#111118;border:2px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;padding:7px 16px;border-radius:8px;cursor:pointer;transition:.2s}
+.back-btn{
+  position:absolute;top:12px;left:12px;z-index:20;
+  background:#111118;border:2px solid rgba(255,255,255,.12);
+  color:rgba(255,255,255,.6);font-family:'Nunito',sans-serif;
+  font-size:11px;font-weight:800;padding:7px 16px;border-radius:8px;
+  cursor:pointer;transition:.2s
+}
 .back-btn:hover{border-color:rgba(255,255,255,.3);color:#fff}
 
-/* ── SKIN MODAL ── */
 #skin-modal{
   display:none;position:fixed;inset:0;z-index:500;
   background:rgba(0,0,0,.82);align-items:center;justify-content:center;
@@ -102,10 +100,13 @@ canvas{display:block}
 .sk-preview{width:36px;height:36px;border-radius:7px;margin:0 auto 8px;border:2px solid rgba(255,255,255,.15)}
 .sk-name{font-size:10px;font-weight:800;letter-spacing:1px;color:rgba(255,255,255,.7);text-transform:uppercase}
 .sk-lock{font-size:9px;color:rgba(255,255,255,.3);margin-top:3px}
-.sm-close{width:100%;padding:11px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;border-radius:10px;cursor:pointer;transition:.2s}
+.sm-close{
+  width:100%;padding:11px;background:rgba(255,255,255,.06);
+  border:2px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;
+  border-radius:10px;cursor:pointer;transition:.2s
+}
 .sm-close:hover{background:rgba(255,255,255,.12);color:#fff}
-
-/* sign-in note in skin modal */
 .sm-note{font-size:11px;color:rgba(167,139,250,.5);text-align:center;margin-bottom:16px}
 </style>
 </head>
@@ -130,7 +131,6 @@ canvas{display:block}
   <canvas id="gameCanvas"></canvas>
 </div>
 
-<!-- SKIN MODAL -->
 <div id="skin-modal">
   <div class="sm-box">
     <h2>🎨 SKINS</h2>
@@ -146,45 +146,82 @@ canvas{display:block}
 <script src="../../firebase.js"></script>
 <script src="levels.js"></script>
 <script src="game.js"></script>
+
 <script>
-if (!sessionStorage.getItem('cube_prog')) sessionStorage.setItem('cube_prog','1');
 let current = 1;
+let progressCache = 1;
+let progressLoaded = false;
 
-const ACCENTS = {1:'#f97316',2:'#22c55e',3:'#f43f5e',4:'#06b6d4',5:'#a855f7',
-                 6:'#eab308',7:'#38bdf8',8:'#f97316',9:'#84cc16',10:'#818cf8'};
+const ACCENTS = {
+  1:'#f97316',2:'#22c55e',3:'#f43f5e',4:'#06b6d4',5:'#a855f7',
+  6:'#eab308',7:'#38bdf8',8:'#f97316',9:'#84cc16',10:'#818cf8'
+};
 
-function fmt(s){ return s==null?'':s<60?s.toFixed(2)+'s':`${Math.floor(s/60)}m${(s%60).toFixed(0)}s` }
+function fmt(s){ return s==null ? '' : s < 60 ? s.toFixed(2) + 's' : `${Math.floor(s/60)}m ${(s%60).toFixed(0)}s`; }
+
+function getLocalProgress() {
+  const v = parseInt(sessionStorage.getItem('cube_prog') || '1');
+  return Number.isFinite(v) ? v : 1;
+}
+
+function setProgress(n) {
+  progressCache = Math.max(1, Math.min(MAX_LEVELS, n));
+  sessionStorage.setItem('cube_prog', String(progressCache));
+  progressLoaded = true;
+}
+
+async function loadProgress() {
+  const u = window.FB?.currentUser();
+  if (!u) {
+    setProgress(getLocalProgress());
+    buildGrid();
+    return;
+  }
+  try {
+    const prof = await window.FB.getProfile(u.uid);
+    const fbProg = parseInt(prof?.progress || prof?.highest || prof?.level || 1);
+    if (Number.isFinite(fbProg) && fbProg >= 1) {
+      setProgress(fbProg);
+    } else {
+      setProgress(getLocalProgress());
+    }
+  } catch (e) {
+    setProgress(getLocalProgress());
+  }
+  buildGrid();
+}
 
 async function buildGrid() {
-  const prog = parseInt(sessionStorage.getItem('cube_prog'));
-  let times  = {};
+  const prog = progressLoaded ? progressCache : getLocalProgress();
+  let times = {};
   const u = window.FB?.currentUser();
-  if (u) { try { times = await window.FB.getMyTimes(u.uid); } catch(e){} }
+  if (u) {
+    try { times = await window.FB.getMyTimes(u.uid); } catch(e){}
+  }
 
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
   for (let i = 1; i <= MAX_LEVELS; i++) {
-    const done=i<prog, locked=i>prog, sel=i===current;
-    const ac    = ACCENTS[i];
-    const entry = times['L'+i];  // keys are L1, L2, ...
-    const el    = document.createElement('div');
-    el.className = 'node'+(locked?' locked':'')+(sel?' sel':'')+(done?' done':'');
+    const done = i <= prog;
+    const locked = i > prog;
+    const sel = i === current;
+    const ac = ACCENTS[i];
+    const entry = times['L' + i];
+    const el = document.createElement('div');
+    el.className = 'node' + (locked ? ' locked' : '') + (sel ? ' sel' : '') + (done ? ' done' : '');
     el.style.setProperty('--ac', ac);
-    el.id = 'n'+i;
-    el.innerHTML = `
-      <div class="n-num">${i}</div>
-      ${entry ? `<div class="n-time">⏱${fmt(entry.t)}</div>` : ''}
-      <div class="n-icon">${done?'★':locked?'🔒':'▶'}</div>`;
+    el.id = 'n' + i;
+    el.innerHTML = `<div class="n-num">${i}</div>${entry ? `<div class="n-time">⏱${fmt(entry.t)}</div>` : ''}<div class="n-icon">${done ? '★' : locked ? '🔒' : '▶'}</div>`;
     if (!locked) el.onclick = () => select(i);
     grid.appendChild(el);
   }
 }
 
 function select(n) {
-  if (n > parseInt(sessionStorage.getItem('cube_prog'))) return;
+  if (n > (progressLoaded ? progressCache : getLocalProgress())) return;
   current = n;
   document.querySelectorAll('.node').forEach(e => e.classList.remove('sel'));
-  document.getElementById('n'+n).classList.add('sel');
+  document.getElementById('n' + n).classList.add('sel');
 }
 
 function startGame() {
@@ -193,29 +230,20 @@ function startGame() {
   initGame(current);
 }
 
-// ── SKINS ───────────────────────────────────────────────────────────────────
 const SKIN_UNLOCK_LEVEL = { default:0, ghost:2, neon:4, fire:6, void:8, rainbow:10 };
-const SKIN_COLORS = {
-  default:'#7c3aed', ghost:'rgba(200,210,255,.8)', neon:'#00ff88',
-  fire:'#ff4400', void:'#0d0d1a', rainbow:'linear-gradient(135deg,#f00,#ff0,#0f0,#00f)'
-};
-
 let _skinOwned = { default:true };
 let _skinEquipped = 'default';
 
 async function openSkins() {
   const u = window.FB?.currentUser();
-  document.getElementById('sm-note').textContent =
-    u ? `Signed in as ${u.displayName || u.email}` : 'Sign in to save your skin.';
-
+  document.getElementById('sm-note').textContent = u ? `Signed in as ${u.displayName || u.email}` : 'Sign in to save your skin.';
   if (u) {
     try {
       const sd = await window.FB.getSkinData(u.uid);
-      _skinOwned    = sd.own    || { default:true };
-      _skinEquipped = sd.eq     || 'default';
+      _skinOwned = sd.own || { default:true };
+      _skinEquipped = sd.eq || 'default';
     } catch(e) {}
   }
-
   renderSkinGrid();
   document.getElementById('skin-modal').classList.add('open');
 }
@@ -227,47 +255,27 @@ function closeSkins() {
 function renderSkinGrid() {
   const grid = document.getElementById('skin-grid');
   grid.innerHTML = '';
-  const prog = parseInt(sessionStorage.getItem('cube_prog'));
-
   Object.keys(SKINS).forEach(id => {
-    const owned    = !!_skinOwned[id];
+    const owned = !!_skinOwned[id];
     const equipped = _skinEquipped === id;
     const unlockAt = SKIN_UNLOCK_LEVEL[id];
-    const reachable = prog > unlockAt;
-
     const card = document.createElement('div');
     card.className = 'skin-card' + (equipped ? ' equipped' : '') + (!owned ? ' locked-skin' : '');
-
-    // Preview square
     const prev = document.createElement('div');
     prev.className = 'sk-preview';
-    if (SKINS[id].rainbow) {
-      prev.style.background = 'linear-gradient(135deg,#f00,#ff0,#0f0,#00f,#f0f)';
-    } else {
-      prev.style.background = SKINS[id].body || ACCENTS[1];
-    }
-    prev.style.boxShadow = `0 0 8px ${SKINS[id].body || ACCENTS[1]}66`;
-
+    prev.style.background = SKINS[id].rainbow ? 'linear-gradient(135deg,#f00,#ff0,#0f0,#00f,#f0f)' : (SKINS[id].body || ACCENTS[1]);
+    prev.style.boxShadow = `0 0 8px ${(SKINS[id].body || ACCENTS[1])}66`;
     card.appendChild(prev);
     card.innerHTML += `<div class="sk-name">${SKINS[id].label}</div>`;
-
-    if (!owned) {
-      card.innerHTML += `<div class="sk-lock">Unlock @ Lvl ${unlockAt}</div>`;
-    } else if (equipped) {
-      card.innerHTML += `<div class="sk-lock" style="color:#a78bfa">Equipped ✓</div>`;
-    }
-
-    if (owned && !equipped) {
-      card.onclick = () => equipSkinLocal(id);
-    }
-
+    if (!owned) card.innerHTML += `<div class="sk-lock">Unlock @ Lvl ${unlockAt}</div>`;
+    else if (equipped) card.innerHTML += `<div class="sk-lock" style="color:#a78bfa">Equipped ✓</div>`;
+    if (owned && !equipped) card.onclick = () => equipSkinLocal(id);
     grid.appendChild(card);
   });
 }
 
 async function equipSkinLocal(id) {
   _skinEquipped = id;
-  // Save to Firebase if signed in
   const u = window.FB?.currentUser();
   if (u) {
     try { await window.FB.equipSkin(u.uid, id); } catch(e) {}
@@ -275,9 +283,11 @@ async function equipSkinLocal(id) {
   renderSkinGrid();
 }
 
-// ── AUTH ─────────────────────────────────────────────────────────────────────
 buildGrid();
-window.FB?.onAuthChange(() => buildGrid());
+loadProgress();
+window.FB?.onAuthChange(() => {
+  loadProgress();
+});
 </script>
 </body>
 </html>
