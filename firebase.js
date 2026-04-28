@@ -1,23 +1,21 @@
-// firebase.js
 if (typeof firebase === 'undefined') throw new Error('[FB] Load Firebase SDK <script> tags BEFORE firebase.js');
 
 if (!firebase.apps.length) firebase.initializeApp({
-  apiKey:            'AIzaSyC_fNfUQUcdhicNNx-e0weEGURbz-mZs8g',
+  apiKey:            'AIzaSyC_fNfUQUcdhicNNx-e0weEGURbz-mzSs8g',
   authDomain:        'playconsole4u.firebaseapp.com',
   databaseURL:       'https://playconsole4u-default-rtdb.firebaseio.com',
   projectId:         'playconsole4u',
   storageBucket:     'playconsole4u.firebasestorage.app',
   messagingSenderId: '383598421108',
-  appId:             '1:383598421108:web:12767cf3738cef9d8a9d21'
+  appId:              '1:383598421108:web:12767cf3738cef9d8a9d21'
 });
 
 const auth = firebase.auth();
 const db = firebase.database();
 
-const _user   = uid => `users/${uid}`;
-const _lvl    = (uid, n) => `users/${uid}/G/CP/L/L${n}`;
-const _skin   = uid => `users/${uid}/G/CP/C/S`;
-const _lbmeta = (uid, n) => `users/${uid}/G/CP/LB/L${n}`;
+const _user = uid => `users/${uid}`;
+const _lvl  = (uid, n) => `users/${uid}/G/CP/L/L${n}`;
+const _skin = uid => `users/${uid}/G/CP/C/S`;
 
 const signInGoogle = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 const signOut = () => auth.signOut();
@@ -95,10 +93,9 @@ async function saveLevelTime(uid, levelNum, seconds) {
       const name = profile.name || currentUser()?.displayName || 'Anonymous';
       const photo = profile.photo || currentUser()?.photoURL || '';
       const ts = Date.now();
-
       await db.ref().update({
         [_lvl(uid, levelNum)]: { t, ts },
-        [_lbmeta(uid, levelNum)]: { t, ts, name, photo }
+        [`users/${uid}/G/CP/LB/L${levelNum}`]: { t, ts, name, photo }
       });
 
       const UNLOCKS = { 2:'ghost', 4:'neon', 6:'fire', 8:'void', 10:'rainbow' };
@@ -124,11 +121,11 @@ async function getMyTimes(uid) {
 
 async function getLeaderboard(levelNum) {
   try {
-    const snap = await db.ref('users').get();
-    if (!snap.exists()) return [];
+    const usersSnap = await db.ref('users').get();
+    if (!usersSnap.exists()) return [];
 
     const rows = [];
-    snap.forEach(userSnap => {
+    usersSnap.forEach(userSnap => {
       const uid = userSnap.key;
       const v = userSnap.child(`G/CP/LB/L${levelNum}`).val();
       if (v && typeof v.t === 'number') {
@@ -143,7 +140,7 @@ async function getLeaderboard(levelNum) {
     });
 
     rows.sort((a, b) => a.t - b.t);
-    return rows.slice(0, 200);
+    return rows;
   } catch (e) {
     console.error('[FB] getLeaderboard:', e.message);
     return [];
@@ -165,4 +162,4 @@ window.FB = {
   getLeaderboard
 };
 
-console.log('[FB] loaded ✓ shape: users/{uid}/G/CP/{C/S + L + LB}');
+console.log('[FB] loaded ✓  shape: users/{uid}/G/CP/{C/S + L + LB}');

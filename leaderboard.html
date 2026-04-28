@@ -128,6 +128,7 @@ function renderPage() {
     document.getElementById('pag').innerHTML = '';
     return;
   }
+
   const start = (page - 1) * PER;
   const slice = rows.slice(start, start + PER);
   let html = `<div class="lb-head">
@@ -135,10 +136,13 @@ function renderPage() {
     <div style="text-align:right">Time</div>
     <div style="text-align:right">Date</div>
   </div>`;
+
   slice.forEach((r, idx) => {
     const gi = start + idx;
     const isMe = r.uid === currentUid;
-    const av = r.photo ? `<img class="av" src="${esc(r.photo)}" onerror="this.style.display='none'" alt="">` : `<div class="av"></div>`;
+    const av = r.photo
+      ? `<img class="av" src="${esc(r.photo)}" onerror="this.style.display='none'" alt="">`
+      : `<div class="av"></div>`;
     html += `<div class="lb-row${isMe ? ' me' : ''}">
       ${rankHtml(gi)}
       <div class="player">
@@ -149,12 +153,10 @@ function renderPage() {
       <div class="dcell">${fmtDate(r.ts)}</div>
     </div>`;
   });
+
   box.innerHTML = html;
   renderPag();
 }
-
-function showErr(msg) { const e = document.getElementById('err-box'); e.textContent = msg; e.style.display = 'block'; }
-function hideErr() { document.getElementById('err-box').style.display = 'none'; }
 
 async function loadLevel(n) {
   if (!authReady) return;
@@ -163,23 +165,23 @@ async function loadLevel(n) {
     document.getElementById('pag').innerHTML = '';
     return;
   }
+
   currentLvl = n; page = 1;
   setAc(ACCENTS[n]);
-  buildTabs(); hideErr();
+  buildTabs();
   document.getElementById('lb-box').innerHTML = '<div class="lb-state spin">LOADING</div>';
   document.getElementById('pag').innerHTML = '';
+
   try {
     rows = await window.FB.getLeaderboard(n);
     renderPage();
   } catch (e) {
-    console.error('[LB]', e.code, e.message);
-    showErr('⚠ Failed to load: ' + e.message);
     document.getElementById('lb-box').innerHTML = '<div class="lb-state">Failed to load.</div>';
   }
 }
 
 async function doSignIn() {
-  try { await window.FB.signInGoogle(); } catch (e) { console.error('[LB] signIn:', e); }
+  try { await window.FB.signInGoogle(); } catch (e) {}
 }
 
 window.FB.onAuthChange(user => {
