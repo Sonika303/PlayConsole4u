@@ -4,11 +4,18 @@ const VW = 800, VH = 500;
 canvas.width = VW;
 canvas.height = VH;
 
-const G = 0.5;
+const G = 0.48;
+const MAX_RUN_SPEED = 4.2;
+const MAX_FALL_SPEED = 12.5;
+const FAN_FORCE_CAP = 0.55;
+
 let cam, player, currentLvl, running, won, keys;
 let timerStart = 0, elapsedMs = 0;
 let activeSkin = 'default';
 let currentSkin = null;
+
+const rectHit = (ax, ay, aw, ah, bx, by, bw, bh) =>
+  ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
 
 const SKINS = {
   default: { body: null, eye: '#fff', pupil: 'rgba(0,0,0,.55)', shine: 'rgba(255,255,255,.35)', label: 'Default', jump: 1, accel: 1, air: 1 },
@@ -20,7 +27,13 @@ const SKINS = {
 };
 
 function mkPlayer(sx, sy) {
-  return { x: sx, y: sy, w: 24, h: 24, dx: 0, dy: 0, jumps: 0, maxJumps: 2, onWall: false, wallDir: 0, onGround: false, prevY: sy, prevX: sx, rotation: 0, spinSpeed: 0, sx, sy, surface: null };
+  return {
+    x: sx, y: sy, w: 24, h: 24,
+    dx: 0, dy: 0, jumps: 0, maxJumps: 2,
+    onWall: false, wallDir: 0, onGround: false,
+    prevY: sy, prevX: sx, rotation: 0, spinSpeed: 0,
+    sx, sy
+  };
 }
 
 keys = {};
@@ -32,10 +45,10 @@ window.addEventListener('keyup', e => { keys[e.code] = false; });
 
 function doJump() {
   const skin = currentSkin || SKINS.default;
-  const jumpPow = 11.5 * skin.jump;
+  const jumpPow = 11.2 * skin.jump;
   if (player.onWall) {
     player.dy = -jumpPow;
-    player.dx = -player.wallDir * 9 * skin.accel;
+    player.dx = -player.wallDir * 7.5 * skin.accel;
     player.jumps = 1;
     player.onWall = false;
     player.spinSpeed = player.wallDir * 0.18;
@@ -84,13 +97,13 @@ async function initGame(lvlNum) {
       p._ox = p.x;
       p._oy = p.y;
     }
-    if (p.falling) {
-      p._startY = p.y;
-      p._fall = false;
-      p._timer = 0;
-    }
     p._lastX = p.x;
     p._lastY = p.y;
+    if (p.falling) {
+      p._timer = 0;
+      p._fall = false;
+      p._startY = p.y;
+    }
   });
 
   player = mkPlayer(lvl.spawn.x, lvl.spawn.y);
@@ -125,7 +138,6 @@ function resetPlayer() {
   player.onGround = false;
   player.rotation = 0;
   player.spinSpeed = 0;
-  player.surface = null;
   timerStart = performance.now();
   elapsedMs = 0;
 }
@@ -137,35 +149,14 @@ function updateCam(wW, wH) {
   cam.y = Math.max(0, Math.min(cam.y, wH - VH));
 }
 
-function rectHit(ax, ay, aw, ah, bx, by, bw, bh) {
-  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
-}
-
 function applySurface(surface) {
   if (surface === 'ice') player.dx *= 0.995;
   else if (surface === 'mud') player.dx *= 0.75;
-  else if (surface === 'conveyorL') player.x -= 1.1;
-  else if (surface === 'conveyorR') player.x += 1.1;
+  else if (surface === 'conveyorL') player.x -= 1.0;
+  else if (surface === 'conveyorR') player.x += 1.0;
 }
 
-function updateMovingPlatform(p) {
-  if (!p.moving) return { dx: 0, dy: 0 };
-  const prevX = p.x, prevY = p.y;
-  p._t += p.moving.speed * 0.016;
-  const offset = Math.sin(p._t) * p.moving.range;
-  if (p.moving.axis === 'x') p.x = p._ox + offset;
-  else p.y = p._oy + offset;
-  return { dx: p.x - prevX, dy: p.y - prevY };
-}
-
-function updateFallingPlatform(p) {
-  if (!p.falling) return;
-  p._timer++;
-  if (!p._fall && p._timer > p.delay) p._fall = true;
-  if (p._fall) p.y += p.fallSpeed;
-}
-
-function updateHazardCycle(item, cycle, phase = 0) {
+function hazardOn(item, cycle, phase = 0) {
   if (cycle == null) return true;
   const t = (performance.now() / 16) % cycle;
   return t > phase && t < phase + cycle * 0.5;
@@ -181,31 +172,45 @@ function loop() {
   for (const p of lvl.platforms) {
     p._lastX = p.x;
     p._lastY = p.y;
-    const mv = updateMovingPlatform(p);
-    updateFallingPlatform(p);
+    if (p.moving) {
+      p._t += p.moving.speed * 0.016;
+      const off = Math.sin(p._t) * p.moving.range;
+      if (p.moving.axis === 'x') p.x = p._ox + off;
+      else p.y = p._oy + off;
+    }
+    if (p.falling) {
+      p._timer++;
+      if (!p._fall && p._timer > p.delay) p._fall = true;
+      if (p._fall) p.y += p.fallSpeed;
+    }
     p._dx = p.x - p._lastX;
     p._dy = p.y - p._lastY;
-    p._mvx = mv.dx;
-    p._mvy = mv.dy;
   }
 
-  if (keys['KeyD'] || keys['ArrowRight']) player.dx += 0.85 * skin.accel;
-  if (keys['KeyA'] || keys['ArrowLeft']) player.dx -= 0.85 * skin.accel;
+  if (keys['KeyD'] || keys['ArrowRight']) player.dx += 0.82 * skin.accel;
+  if (keys['KeyA'] || keys['ArrowLeft']) player.dx -= 0.82 * skin.accel;
+  if (player.onGround) player.dx *= 0.84;
+  else player.dx *= 0.985;
 
-  player.dx *= player.onGround ? 0.84 : 0.985;
+  player.dx = Math.max(-MAX_RUN_SPEED, Math.min(MAX_RUN_SPEED, player.dx));
+
   player.prevX = player.x;
   player.prevY = player.y;
 
   player.x += player.dx;
-  player.y += player.dy;
   player.dy += G;
+  player.dy = Math.min(MAX_FALL_SPEED, player.dy);
+  player.y += player.dy;
 
   player.x = Math.max(0, Math.min(player.x, lvl.w - player.w));
-  if (player.y > lvl.h + 80) resetPlayer();
+
+  if (player.y > lvl.h + 80) {
+    resetPlayer();
+    return requestAnimationFrame(loop);
+  }
 
   player.onGround = false;
   player.onWall = false;
-  player.surface = null;
 
   for (const p of lvl.platforms) {
     if (!rectHit(player.x, player.y, player.w, player.h, p.x, p.y, p.w, p.h)) continue;
@@ -220,16 +225,11 @@ function loop() {
       player.dy = 0;
       player.jumps = 0;
       player.onGround = true;
-      player.surface = p.surface || null;
       if (p._dx || p._dy) {
         player.x += p._dx;
         player.y += p._dy;
       }
       applySurface(p.surface);
-      if (p.trap) {
-        p._timer++;
-        if (p._timer > p.delay) p._broken = true;
-      }
     } else if (fromBottom) {
       player.y = p.y + p.h;
       player.dy = 0;
@@ -238,18 +238,6 @@ function loop() {
       player.wallDir = fromLeft ? -1 : 1;
       player.dx = 0;
       player.dy *= 0.75;
-    } else {
-      player.onWall = true;
-      player.wallDir = (player.x + player.w / 2 < p.x + p.w / 2) ? 1 : -1;
-      player.dx = 0;
-    }
-  }
-
-  for (const p of lvl.platforms) {
-    if (p.falling && p._fall && p.y > lvl.h + 100) {
-      p.y = p._startY;
-      p._timer = 0;
-      p._fall = false;
     }
   }
 
@@ -263,45 +251,43 @@ function loop() {
   }
 
   for (const fan of (lvl.windFans || [])) {
-    if (!rectHit(player.x - 20, player.y - 20, player.w + 40, player.h + 40, fan.x - 10, fan.y - 10, fan.w + 20, fan.h + 20)) continue;
-    if (fan.dir === 'up') player.dy -= fan.force;
-    if (fan.dir === 'down') player.dy += fan.force;
-    if (fan.dir === 'left') player.dx -= fan.force;
-    if (fan.dir === 'right') player.dx += fan.force;
+    if (rectHit(player.x - 20, player.y - 20, player.w + 40, player.h + 40, fan.x - 10, fan.y - 10, fan.w + 20, fan.h + 20)) {
+      const f = Math.min(fan.force || 0, FAN_FORCE_CAP);
+      if (fan.dir === 'up') player.dy -= f;
+      if (fan.dir === 'down') player.dy += f;
+      if (fan.dir === 'left') player.dx -= f;
+      if (fan.dir === 'right') player.dx += f;
+    }
   }
 
   for (const h of (lvl.hazards || [])) {
     if (rectHit(player.x, player.y, player.w, player.h, h.x, h.y, h.w, h.h)) {
       resetPlayer();
-      break;
+      return requestAnimationFrame(loop);
     }
   }
 
   for (const l of (lvl.lasers || [])) {
-    if (!updateHazardCycle(l, l.cycle, l.phase || 0)) continue;
-    if (rectHit(player.x, player.y, player.w, player.h, l.x, l.y, l.w, l.h)) {
+    if (hazardOn(l, l.cycle, l.phase || 0) && rectHit(player.x, player.y, player.w, player.h, l.x, l.y, l.w, l.h)) {
       resetPlayer();
-      break;
+      return requestAnimationFrame(loop);
     }
   }
 
   for (const s of (lvl.spikes || [])) {
-    if (!updateHazardCycle(s, s.cycle, s.phase || 0)) continue;
-    if (rectHit(player.x, player.y, player.w, player.h, s.x, s.y, s.w, s.h)) {
+    if (hazardOn(s, s.cycle, s.phase || 0) && rectHit(player.x, player.y, player.w, player.h, s.x, s.y, s.w, s.h)) {
       resetPlayer();
-      break;
+      return requestAnimationFrame(loop);
     }
   }
 
   for (const saw of (lvl.saws || [])) {
     const t = (performance.now() / 16) * saw.speed * 0.02 + (saw.phase || 0);
-    const ox = saw.axis === 'x' ? Math.sin(t) * saw.range : 0;
-    const oy = saw.axis === 'y' ? Math.sin(t) * saw.range : 0;
-    saw._cx = saw.x + ox;
-    saw._cy = saw.y + oy;
-    if (rectHit(player.x, player.y, player.w, player.h, saw._cx - saw.r, saw._cy - saw.r, saw.r * 2, saw.r * 2)) {
+    const sx = saw.x + (saw.axis === 'x' ? Math.sin(t) * saw.range : 0);
+    const sy = saw.y + (saw.axis === 'y' ? Math.sin(t) * saw.range : 0);
+    if (rectHit(player.x, player.y, player.w, player.h, sx - saw.r, sy - saw.r, saw.r * 2, saw.r * 2)) {
       resetPlayer();
-      break;
+      return requestAnimationFrame(loop);
     }
   }
 
@@ -343,7 +329,6 @@ function draw(lvl) {
   ctx.translate(-cam.x, -cam.y);
 
   for (const p of lvl.platforms) {
-    if (p._broken) continue;
     ctx.fillStyle = p.c;
     ctx.beginPath();
     ctx.roundRect(p.x, p.y, p.w, p.h, 5);
@@ -357,9 +342,7 @@ function draw(lvl) {
       ctx.fillRect(p.x, p.y + p.h - 3, p.w, 3);
     } else if (p.surface === 'conveyorL' || p.surface === 'conveyorR') {
       ctx.fillStyle = 'rgba(255,255,255,.18)';
-      for (let i = 0; i < p.w; i += 12) {
-        ctx.fillRect(p.x + i, p.y + p.h / 2 - 1, 7, 2);
-      }
+      for (let i = 0; i < p.w; i += 12) ctx.fillRect(p.x + i, p.y + p.h / 2 - 1, 7, 2);
       ctx.fillStyle = '#fff';
       ctx.font = '10px sans-serif';
       ctx.fillText(p.surface === 'conveyorL' ? '◄◄◄' : '►►►', p.x + 8, p.y + 12);
@@ -428,28 +411,28 @@ function draw(lvl) {
   }
 
   for (const l of (lvl.lasers || [])) {
-    const on = updateHazardCycle(l, l.cycle, l.phase || 0);
-    if (!on) continue;
-    ctx.fillStyle = '#ff4d6d';
-    ctx.shadowColor = '#ff4d6d';
-    ctx.shadowBlur = 18;
-    ctx.fillRect(l.x, l.y, l.w, l.h);
-    ctx.shadowBlur = 0;
+    if (hazardOn(l, l.cycle, l.phase || 0)) {
+      ctx.fillStyle = '#ff4d6d';
+      ctx.shadowColor = '#ff4d6d';
+      ctx.shadowBlur = 18;
+      ctx.fillRect(l.x, l.y, l.w, l.h);
+      ctx.shadowBlur = 0;
+    }
   }
 
   for (const s of (lvl.spikes || [])) {
-    const on = updateHazardCycle(s, s.cycle, s.phase || 0);
-    if (!on) continue;
-    ctx.fillStyle = '#d946ef';
-    const n = Math.max(1, Math.floor(s.w / 12));
-    for (let i = 0; i < n; i++) {
-      const x = s.x + i * 12;
-      ctx.beginPath();
-      ctx.moveTo(x, s.y + s.h);
-      ctx.lineTo(x + 6, s.y);
-      ctx.lineTo(x + 12, s.y + s.h);
-      ctx.closePath();
-      ctx.fill();
+    if (hazardOn(s, s.cycle, s.phase || 0)) {
+      ctx.fillStyle = '#d946ef';
+      const n = Math.max(1, Math.floor(s.w / 12));
+      for (let i = 0; i < n; i++) {
+        const x = s.x + i * 12;
+        ctx.beginPath();
+        ctx.moveTo(x, s.y + s.h);
+        ctx.lineTo(x + 6, s.y);
+        ctx.lineTo(x + 12, s.y + s.h);
+        ctx.closePath();
+        ctx.fill();
+      }
     }
   }
 

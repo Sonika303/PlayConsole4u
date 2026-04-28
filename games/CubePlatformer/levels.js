@@ -1,8 +1,4 @@
-// levels.js — 10 levels, moving platforms, bounce pads, hard mode
-// platform optional: moving: { axis:'x'|'y', range, speed }
-// bouncePad: { x, y, w, h, force } (force = upward velocity given to player)
-// extra obstacles: surface, windFans, lasers, spikes, saws, trapDoors, fallingPlatforms
-
+// levels.js — 10 levels, harder as you go
 const MAX_LEVELS = 10;
 
 const LEVELS = {
@@ -18,7 +14,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 575, y: 440, w: 70, h: 10 }],
     bouncePads: [{ x: 365, y: 367, w: 52, h: 12, force: 15 }],
-    windFans: [{ x: 790, y: 190, w: 26, h: 40, dir: 'up', force: 0.9 }],
+    windFans: [{ x: 790, y: 190, w: 26, h: 40, dir: 'up', force: 0.6 }],
     lasers: [], spikes: [], saws: [], trapDoors: [], fallingPlatforms: [],
     goal: { x: 1148, y: 400, w: 28, h: 46 }
   },
@@ -36,7 +32,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 180, y: 490, w: 60, h: 12 }],
     bouncePads: [{ x: 520, y: 268, w: 52, h: 12, force: 16 }],
-    windFans: [{ x: 910, y: 160, w: 26, h: 40, dir: 'right', force: 0.7 }],
+    windFans: [{ x: 910, y: 160, w: 26, h: 40, dir: 'right', force: 0.65 }],
     lasers: [{ x: 690, y: 430, w: 180, h: 6, cycle: 180, phase: 0 }],
     spikes: [{ x: 1120, y: 448, w: 48, h: 12, cycle: 140, phase: 50 }],
     saws: [],
@@ -60,7 +56,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 150, y: 518, w: 100, h: 12 }, { x: 870, y: 518, w: 80, h: 12 }],
     bouncePads: [{ x: 1220, y: 468, w: 52, h: 12, force: 17 }],
-    windFans: [{ x: 1060, y: 250, w: 26, h: 40, dir: 'up', force: 0.9 }],
+    windFans: [{ x: 1060, y: 250, w: 26, h: 40, dir: 'up', force: 0.7 }],
     lasers: [{ x: 350, y: 460, w: 260, h: 6, cycle: 120, phase: 40 }],
     spikes: [{ x: 680, y: 478, w: 44, h: 12, cycle: 100, phase: 10 }],
     saws: [{ x: 1000, y: 430, r: 14, axis: 'y', range: 70, speed: 2.6, phase: 0 }],
@@ -86,7 +82,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 150, y: 578, w: 80, h: 12 }, { x: 860, y: 578, w: 420, h: 12 }],
     bouncePads: [{ x: 600, y: 535, w: 52, h: 12, force: 18 }],
-    windFans: [{ x: 1460, y: 390, w: 26, h: 40, dir: 'up', force: 1.0 }],
+    windFans: [{ x: 1460, y: 390, w: 26, h: 40, dir: 'up', force: 0.75 }],
     lasers: [{ x: 980, y: 240, w: 190, h: 6, cycle: 130, phase: 30 }],
     spikes: [{ x: 1260, y: 528, w: 44, h: 12, cycle: 110, phase: 60 }],
     saws: [{ x: 1490, y: 500, r: 15, axis: 'x', range: 90, speed: 3.0, phase: 0 }],
@@ -112,7 +108,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 145, y: 648, w: 65, h: 12 }, { x: 835, y: 648, w: 220, h: 12 }],
     bouncePads: [{ x: 980, y: 445, w: 52, h: 12, force: 19 }],
-    windFans: [{ x: 1160, y: 300, w: 26, h: 40, dir: 'right', force: 0.9 }],
+    windFans: [{ x: 1160, y: 300, w: 26, h: 40, dir: 'right', force: 0.8 }],
     lasers: [{ x: 620, y: 520, w: 240, h: 6, cycle: 110, phase: 20 }],
     spikes: [{ x: 1380, y: 608, w: 46, h: 12, cycle: 90, phase: 25 }],
     saws: [{ x: 1560, y: 560, r: 15, axis: 'y', range: 85, speed: 3.0, phase: 0 }],
@@ -141,7 +137,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 135, y: 648, w: 45, h: 12 }, { x: 620, y: 648, w: 520, h: 12 }, { x: 1560, y: 648, w: 80, h: 12 }],
     bouncePads: [{ x: 1060, y: 605, w: 52, h: 12, force: 20 }],
-    windFans: [{ x: 1500, y: 300, w: 26, h: 40, dir: 'up', force: 1.1 }],
+    windFans: [{ x: 1500, y: 300, w: 26, h: 40, dir: 'up', force: 0.85 }],
     lasers: [{ x: 240, y: 500, w: 220, h: 6, cycle: 100, phase: 10 }],
     spikes: [{ x: 1650, y: 608, w: 42, h: 12, cycle: 90, phase: 40 }],
     saws: [{ x: 1200, y: 560, r: 16, axis: 'x', range: 100, speed: 3.2, phase: 0 }],
@@ -170,7 +166,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 145, y: 748, w: 60, h: 12 }, { x: 930, y: 748, w: 380, h: 12 }, { x: 1540, y: 748, w: 320, h: 12 }],
     bouncePads: [{ x: 760, y: 705, w: 52, h: 12, force: 21 }],
-    windFans: [{ x: 1320, y: 340, w: 26, h: 40, dir: 'up', force: 1.0 }],
+    windFans: [{ x: 1320, y: 340, w: 26, h: 40, dir: 'up', force: 0.9 }],
     lasers: [{ x: 1040, y: 450, w: 220, h: 6, cycle: 110, phase: 55 }],
     spikes: [{ x: 1500, y: 698, w: 44, h: 12, cycle: 85, phase: 10 }],
     saws: [{ x: 1940, y: 650, r: 16, axis: 'x', range: 120, speed: 3.5, phase: 0 }],
@@ -202,7 +198,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 128, y: 748, w: 47, h: 12 }, { x: 900, y: 748, w: 470, h: 12 }, { x: 1620, y: 748, w: 300, h: 12 }],
     bouncePads: [{ x: 760, y: 705, w: 52, h: 12, force: 22 }],
-    windFans: [{ x: 1380, y: 260, w: 26, h: 40, dir: 'right', force: 1.0 }],
+    windFans: [{ x: 1380, y: 260, w: 26, h: 40, dir: 'right', force: 0.95 }],
     lasers: [{ x: 1740, y: 620, w: 220, h: 6, cycle: 100, phase: 20 }],
     spikes: [{ x: 2100, y: 698, w: 46, h: 12, cycle: 80, phase: 40 }],
     saws: [{ x: 1880, y: 640, r: 16, axis: 'y', range: 80, speed: 3.6, phase: 0 }],
@@ -234,7 +230,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 128, y: 798, w: 47, h: 12 }, { x: 1040, y: 798, w: 330, h: 12 }, { x: 1840, y: 798, w: 250, h: 12 }],
     bouncePads: [{ x: 810, y: 755, w: 52, h: 12, force: 23 }],
-    windFans: [{ x: 1460, y: 360, w: 26, h: 40, dir: 'up', force: 1.15 }],
+    windFans: [{ x: 1460, y: 360, w: 26, h: 40, dir: 'up', force: 1.0 }],
     lasers: [{ x: 1760, y: 680, w: 220, h: 6, cycle: 90, phase: 10 }],
     spikes: [{ x: 2280, y: 748, w: 44, h: 12, cycle: 75, phase: 20 }],
     saws: [{ x: 2440, y: 700, r: 16, axis: 'x', range: 130, speed: 3.9, phase: 0 }],
@@ -272,7 +268,7 @@ const LEVELS = {
     ],
     hazards: [{ x: 118, y: 798, w: 47, h: 12 }, { x: 900, y: 798, w: 500, h: 12 }, { x: 1510, y: 798, w: 460, h: 12 }, { x: 2050, y: 798, w: 470, h: 12 }],
     bouncePads: [{ x: 718, y: 755, w: 52, h: 12, force: 24 }, { x: 1930, y: 755, w: 52, h: 12, force: 24 }],
-    windFans: [{ x: 900, y: 200, w: 26, h: 40, dir: 'up', force: 1.2 }, { x: 2500, y: 200, w: 26, h: 40, dir: 'left', force: 1.0 }],
+    windFans: [{ x: 900, y: 200, w: 26, h: 40, dir: 'up', force: 1.0 }, { x: 2500, y: 200, w: 26, h: 40, dir: 'left', force: 0.9 }],
     lasers: [{ x: 1460, y: 680, w: 220, h: 6, cycle: 80, phase: 0 }, { x: 2600, y: 500, w: 180, h: 6, cycle: 80, phase: 40 }],
     spikes: [{ x: 2140, y: 748, w: 46, h: 12, cycle: 70, phase: 15 }],
     saws: [{ x: 1700, y: 700, r: 16, axis: 'x', range: 120, speed: 4.2, phase: 0 }, { x: 2880, y: 640, r: 16, axis: 'y', range: 70, speed: 4.2, phase: 0 }],
