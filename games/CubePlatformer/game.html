@@ -177,17 +177,33 @@ async function loadProgress() {
     buildGrid();
     return;
   }
+
   try {
-    const prof = await window.FB.getProfile(u.uid);
-    const fbProg = parseInt(prof?.progress || prof?.highest || prof?.level || 1);
-    if (Number.isFinite(fbProg) && fbProg >= 1) {
-      setProgress(fbProg);
+    const times = await window.FB.getMyTimes(u.uid);
+    const keys = Object.keys(times || {});
+    const levelNums = keys
+      .map(k => {
+        const m = String(k).match(/L(\d+)/i);
+        return m ? parseInt(m[1], 10) : 0;
+      })
+      .filter(n => Number.isFinite(n) && n > 0);
+
+    if (levelNums.length) {
+      setProgress(Math.min(MAX_LEVELS, Math.max(...levelNums)));
     } else {
       setProgress(getLocalProgress());
     }
   } catch (e) {
-    setProgress(getLocalProgress());
+    try {
+      const prof = await window.FB.getProfile(u.uid);
+      const fbProg = parseInt(prof?.progress || prof?.highest || prof?.level || 1);
+      if (Number.isFinite(fbProg) && fbProg >= 1) setProgress(fbProg);
+      else setProgress(getLocalProgress());
+    } catch (err) {
+      setProgress(getLocalProgress());
+    }
   }
+
   buildGrid();
 }
 
@@ -196,23 +212,25 @@ async function buildGrid() {
   let times = {};
   const u = window.FB?.currentUser();
   if (u) {
-    try { times = await window.FB.getMyTimes(u.uid); } catch(e){}
+    try { times = await window.FB.getMyTimes(u.uid); } catch(e) {}
   }
 
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
   for (let i = 1; i <= MAX_LEVELS; i++) {
-    const done = i <= prog;
-    const locked = i > prog;
+    const unlocked = i <= prog;
     const sel = i === current;
     const ac = ACCENTS[i];
     const entry = times['L' + i];
     const el = document.createElement('div');
-    el.className = 'node' + (locked ? ' locked' : '') + (sel ? ' sel' : '') + (done ? ' done' : '');
+    el.className = 'node' + (!unlocked ? ' locked' : '') + (sel ? ' sel' : '') + (unlocked ? ' done' : '');
     el.style.setProperty('--ac', ac);
     el.id = 'n' + i;
-    el.innerHTML = `<div class="n-num">${i}</div>${entry ? `<div class="n-time">⏱${fmt(entry.t)}</div>` : ''}<div class="n-icon">${done ? '★' : locked ? '🔒' : '▶'}</div>`;
-    if (!locked) el.onclick = () => select(i);
+    el.innerHTML = `
+      <div class="n-num">${i}</div>
+      ${entry ? `<div class="n-time">⏱${fmt(entry.t)}</div>` : ''}
+      <div class="n-icon">${unlocked ? '★' : '🔒'}</div>`;
+    if (unlocked) el.onclick = () => select(i);
     grid.appendChild(el);
   }
 }
@@ -221,7 +239,8 @@ function select(n) {
   if (n > (progressLoaded ? progressCache : getLocalProgress())) return;
   current = n;
   document.querySelectorAll('.node').forEach(e => e.classList.remove('sel'));
-  document.getElementById('n' + n).classList.add('sel');
+  const el = document.getElementById('n' + n);
+  if (el) el.classList.add('sel');
 }
 
 function startGame() {
@@ -283,11 +302,14 @@ async function equipSkinLocal(id) {
   renderSkinGrid();
 }
 
+async function refreshAll() {
+  progressLoaded = false;
+  await loadProgress();
+}
+
 buildGrid();
-loadProgress();
-window.FB?.onAuthChange(() => {
-  loadProgress();
-});
+refreshAll();
+window.FB?.onAuthChange(() => refreshAll());
 </script>
 </body>
 </html>

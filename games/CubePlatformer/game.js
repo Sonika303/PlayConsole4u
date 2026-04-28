@@ -1,4 +1,3 @@
-// game.js — requires levels.js loaded first
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const VW = 800, VH = 500;
@@ -192,7 +191,13 @@ function loop() {
   }
 
   for (const b of lvl.bouncePads) {
-    if (player.x + player.w > b.x && player.x < b.x + b.w && player.y + player.h > b.y && player.y + player.h < b.y + b.h + 12 && player.dy > 0) {
+    if (
+      player.x + player.w > b.x &&
+      player.x < b.x + b.w &&
+      player.y + player.h > b.y &&
+      player.y + player.h < b.y + b.h + 12 &&
+      player.dy > 0
+    ) {
       player.dy = -(b.force);
       player.y = b.y - player.h;
       player.jumps = 0;
@@ -201,7 +206,12 @@ function loop() {
   }
 
   for (const h of lvl.hazards) {
-    if (player.x + player.w > h.x && player.x < h.x + h.w && player.y + player.h > h.y && player.y < h.y + h.h) {
+    if (
+      player.x + player.w > h.x &&
+      player.x < h.x + h.w &&
+      player.y + player.h > h.y &&
+      player.y < h.y + h.h
+    ) {
       resetPlayer();
       break;
     }
@@ -214,7 +224,12 @@ function loop() {
   }
 
   const g = lvl.goal;
-  if (player.x + player.w > g.x && player.x < g.x + g.w && player.y + player.h > g.y && player.y < g.y + g.h) {
+  if (
+    player.x + player.w > g.x &&
+    player.x < g.x + g.w &&
+    player.y + player.h > g.y &&
+    player.y < g.y + g.h
+  ) {
     won = true;
     running = false;
     const secs = elapsedMs / 1000;
