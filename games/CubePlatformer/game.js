@@ -243,11 +243,6 @@ function loop() {
     running = false;
     const secs = elapsedMs / 1000;
 
-    const prog = parseInt(sessionStorage.getItem('cube_prog') || '1');
-    if (currentLvl + 1 > prog && currentLvl + 1 <= MAX_LEVELS) {
-      sessionStorage.setItem('cube_prog', String(currentLvl + 1));
-    }
-
     const u = window.FB?.currentUser();
     if (u) {
       window.FB.getProfile(u.uid).then(prof => {
@@ -285,10 +280,12 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(p.x, p.y, p.w, p.h, 5);
     ctx.fill();
+
     ctx.fillStyle = 'rgba(255,255,255,.08)';
     ctx.beginPath();
     ctx.roundRect(p.x + 3, p.y + 2, p.w - 6, Math.min(4, p.h / 2), 3);
     ctx.fill();
+
     if (p.moving) {
       ctx.strokeStyle = lvl.accent + '66';
       ctx.lineWidth = 2;
@@ -304,6 +301,7 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(b.x, b.y, b.w, b.h, 4);
     ctx.fill();
+
     const coils = 4;
     ctx.strokeStyle = lvl.accent;
     ctx.lineWidth = 2;
@@ -314,6 +312,7 @@ function draw(lvl) {
       ctx.lineTo(cx + 4, b.y + 2);
       ctx.stroke();
     }
+
     ctx.fillStyle = lvl.accent;
     ctx.font = 'bold 9px sans-serif';
     ctx.textAlign = 'center';
@@ -327,6 +326,7 @@ function draw(lvl) {
     ctx.beginPath();
     ctx.roundRect(h.x, h.y, h.w, h.h, 3);
     ctx.fill();
+
     ctx.fillStyle = '#ef4444';
     const n = Math.floor(h.w / 14);
     for (let i = 0; i < n; i++) {
@@ -362,13 +362,17 @@ function draw(lvl) {
 function drawPlayer(accent) {
   const skin = currentSkin || SKINS.default;
   const hw = player.w / 2, hh = player.h / 2;
+
   ctx.save();
   ctx.translate(player.x + hw, player.y + hh);
+
   ctx.fillStyle = 'rgba(0,0,0,.22)';
   ctx.beginPath();
   ctx.ellipse(2, hh + 4, hw + 2, 4, 0, 0, Math.PI * 2);
   ctx.fill();
+
   ctx.rotate(player.rotation);
+
   if (skin.rainbow) {
     const rg = ctx.createLinearGradient(-hw, -hh, hw, hh);
     const t = (Date.now() % 2000) / 2000;
@@ -381,21 +385,26 @@ function drawPlayer(accent) {
   } else {
     ctx.fillStyle = skin.body || accent;
   }
+
   ctx.beginPath();
   ctx.roundRect(-hw, -hh, player.w, player.h, 4);
   ctx.fill();
+
   ctx.fillStyle = skin.shine;
   ctx.beginPath();
   ctx.roundRect(-hw + 3, -hh + 3, hw - 2, hh - 2, 3);
   ctx.fill();
+
   ctx.fillStyle = skin.eye;
   ctx.beginPath();
   ctx.arc(-3, -2, 3, 0, Math.PI * 2);
   ctx.fill();
+
   ctx.fillStyle = skin.pupil;
   ctx.beginPath();
   ctx.arc(-3, -2, 1.5, 0, Math.PI * 2);
   ctx.fill();
+
   ctx.restore();
 }
 
@@ -414,6 +423,7 @@ function drawWin(secs, isRecord, prev) {
   const lvl = LEVELS[currentLvl];
   ctx.fillStyle = 'rgba(0,0,0,.92)';
   ctx.fillRect(0, 0, VW, VH);
+
   const grd = ctx.createRadialGradient(VW / 2, VH / 2, 0, VW / 2, VH / 2, 200);
   grd.addColorStop(0, lvl.accent + '44');
   grd.addColorStop(1, 'transparent');
@@ -445,6 +455,7 @@ function drawWin(secs, isRecord, prev) {
     VW / 2,
     VH / 2 + (isRecord ? 38 : 22)
   );
+
   ctx.fillStyle = 'rgba(255,255,255,.28)';
   ctx.font = '12px Nunito,sans-serif';
   ctx.fillText('Tap or click to continue', VW / 2, VH / 2 + (isRecord ? 62 : 46));
