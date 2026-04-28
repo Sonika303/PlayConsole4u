@@ -1,7 +1,7 @@
 if (typeof firebase === 'undefined') throw new Error('[FB] Load Firebase SDK <script> tags BEFORE firebase.js');
 
 if (!firebase.apps.length) firebase.initializeApp({
-  apiKey: 'AIzaSyC_fNfUQUcdhicNNx-e0weEGURbz-mzS8g',
+  apiKey: 'AIzaSyC_fNfUQUcdhicNNx-e0weEGURbz-mZs8g',
   authDomain: 'playconsole4u.firebaseapp.com',
   databaseURL: 'https://playconsole4u-default-rtdb.firebaseio.com',
   projectId: 'playconsole4u',
