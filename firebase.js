@@ -1,28 +1,20 @@
 // firebase.js
-// ════════════════════════════════════════════════════════════════
-//  NEW DB SHAPE:
+// ═══════════════════════════════════════════════
+//  DB SHAPE:
 //  users/{uid}/
-//    name   : "PlayerName"
-//    photo  : "https://..."
-//    C/                        ← Collection
-//      S/                      ← Skins
-//        eq  : "default"       ← equipped skin id
-//        own/                  ← unlocked skin ids
-//          default : true
-//          ghost   : true
-//    D/                        ← Data
-//      CubePlatformer/
-//        L/                    ← Levels
-//          L1 : { t, ts }      ← t = seconds (float), ts = epoch ms
-//          L2 : { t, ts }
+//    name                       → "PlayerName"
+//    photo                      → "https://..."
+//    C/S/                       → Collection / Skins
+//      eq   : "default"         → equipped skin
+//      own/ : { default:true }  → owned skins
+//    G/CP/L/                    → Games / CubePlatformer / Levels
+//      L1  : { t, ts }
+//      L2  : { t, ts }
 //
-//  LB/                         ← Leaderboard (top-level, fast reads, no full scan)
-//    CubePlatformer/
-//      1/  { uid: { t, ts, name, photo } }
-//      2/  { uid: { t, ts, name, photo } }
+//  LB/CP/{levelNum}/{uid}/      → Leaderboard (fast reads)
+//      { t, ts, name, photo }
 //
-// ════════════════════════════════════════════════════════════════
-// PASTE THESE RULES IN Firebase Console → Realtime DB → Rules:
+// ── FIREBASE RULES (paste in Console → RTDB → Rules) ──
 // {
 //   "rules": {
 //     "users": {
@@ -33,18 +25,18 @@
 //     },
 //     "LB": {
 //       ".read": "auth != null",
-//       "CubePlatformer": {
-//         "$level": {
+//       "CP": {
+//         "$lvl": {
 //           "$uid": { ".write": "$uid === auth.uid" }
 //         }
 //       }
 //     }
 //   }
 // }
-// ════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════
 
 if (typeof firebase === 'undefined')
-  throw new Error('[FB] Firebase SDK scripts must be loaded BEFORE firebase.js');
+  throw new Error('[FB] Load Firebase SDK scripts BEFORE firebase.js');
 
 if (!firebase.apps.length)
   firebase.initializeApp({
@@ -60,6 +52,30 @@ if (!firebase.apps.length)
 const auth = firebase.auth();
 const db   = firebase.database();
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+function _lvlPath(uid, n) { return `users/${uid}/G/CP/L/L${n}`; }
+function _lbPath (uid, n) { return `LB/CP/${n}/${uid}`; }
+
+function _logErr(fn, e) {
+  console.error(`[FB] ${fn}:`, e.code || '', e.message);
+  if (e.code === 'PERMISSION_DENIED')
+    console.error('[FB] → Fix: paste the Rules block shown at the top of firebase.js into Firebase Console → Realtime Database → Rules');
+}
+
+// ── AUTO SETUP (first sign-in) ────────────────────────────────────────────────
+async function _ensureDefaults(user) {
+  try {
+    const snap = await db.ref(`users/${user.uid}`).get();
+    const val  = snap.exists() ? (snap.val() || {}) : {};
+    const up   = {};
+    if (!val.name)                   up.name         = user.displayName || 'Anonymous';
+    if (!val.photo && user.photoURL) up.photo        = user.photoURL;
+    if (!val.C?.S?.eq)               up['C/S/eq']    = 'default';
+    if (!val.C?.S?.own?.default)     up['C/S/own/default'] = true;
+    if (Object.keys(up).length) await db.ref(`users/${user.uid}`).update(up);
+  } catch (e) { console.warn('[FB] _ensureDefaults:', e.message); }
+}
+
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 const signInGoogle = () => auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
 const signOut      = () => auth.signOut();
@@ -67,29 +83,17 @@ const currentUser  = () => auth.currentUser;
 
 function onAuthChange(cb) {
   auth.onAuthStateChanged(async user => {
-    if (user) await _ensureDefaults(user).catch(e => console.warn('[FB] ensureDefaults:', e.message));
+    if (user) await _ensureDefaults(user);
     cb(user);
   });
-}
-
-// ── DEFAULT DATA SETUP ────────────────────────────────────────────────────────
-async function _ensureDefaults(user) {
-  const snap = await db.ref(`users/${user.uid}`).get();
-  const val  = snap.exists() ? (snap.val() || {}) : {};
-  const up   = {};
-  if (!val.name)               up.name            = user.displayName || 'Anonymous';
-  if (!val.photo && user.photoURL) up.photo        = user.photoURL;
-  if (!val.C?.S?.own?.default) up['C/S/own/default'] = true;
-  if (!val.C?.S?.eq)           up['C/S/eq']         = 'default';
-  if (Object.keys(up).length)  await db.ref(`users/${user.uid}`).update(up);
 }
 
 // ── PROFILE ───────────────────────────────────────────────────────────────────
 async function getProfile(uid) {
   try {
-    const snap = await db.ref(`users/${uid}`).get();
-    return snap.exists() ? (snap.val() || {}) : {};
-  } catch(e) { console.warn('[FB] getProfile:', e.message); return {}; }
+    const s = await db.ref(`users/${uid}`).get();
+    return s.exists() ? (s.val() || {}) : {};
+  } catch (e) { _logErr('getProfile', e); return {}; }
 }
 
 async function saveProfile(uid, name, photo) {
@@ -99,15 +103,14 @@ async function saveProfile(uid, name, photo) {
   await db.ref(`users/${uid}`).update(u);
 }
 
-// ── SKINS  ( users/{uid}/C/S/ ) ───────────────────────────────────────────────
-// Returns { eq: 'default', own: { default: true, ... } }
+// ── SKINS ─────────────────────────────────────────────────────────────────────
 async function getSkinData(uid) {
   try {
-    const snap = await db.ref(`users/${uid}/C/S`).get();
-    if (!snap.exists()) return { eq: 'default', own: { default: true } };
-    const v = snap.val() || {};
+    const s = await db.ref(`users/${uid}/C/S`).get();
+    if (!s.exists()) return { eq: 'default', own: { default: true } };
+    const v = s.val() || {};
     return { eq: v.eq || 'default', own: v.own || { default: true } };
-  } catch(e) { return { eq: 'default', own: { default: true } }; }
+  } catch (e) { return { eq: 'default', own: { default: true } }; }
 }
 
 async function equipSkin(uid, skinId) {
@@ -118,73 +121,63 @@ async function unlockSkin(uid, skinId) {
   await db.ref(`users/${uid}/C/S/own/${skinId}`).set(true);
 }
 
-// ── LEVEL TIMES  ( users/{uid}/D/CubePlatformer/L/L{n} ) ─────────────────────
-// Also writes to LB/ for fast leaderboard reads
+// ── SAVE TIME  →  users/{uid}/G/CP/L/L{n}  +  LB/CP/{n}/{uid} ───────────────
 // Returns { saved, isRecord, prev }
 async function saveLevelTime(uid, levelNum, seconds) {
-  const lvlPath = `users/${uid}/D/CubePlatformer/L/L${levelNum}`;
-  const lbPath  = `LB/CubePlatformer/${levelNum}/${uid}`;
   try {
-    const snap     = await db.ref(lvlPath).get();
-    const t        = Math.round(seconds * 1000) / 1000;
+    const snap     = await db.ref(_lvlPath(uid, levelNum)).get();
+    const t        = Math.round(seconds * 1000) / 1000;   // 3 decimal places
     const prev     = snap.exists() ? snap.val().t : null;
-    const isRecord = (prev === null || t < prev);
+    const isRecord = prev === null || t < prev;
 
     if (isRecord) {
       const profile = await getProfile(uid);
       const name    = profile.name  || currentUser()?.displayName || 'Anonymous';
       const photo   = profile.photo || currentUser()?.photoURL    || '';
+      const ts      = Date.now();
 
       await db.ref().update({
-        [lvlPath]: { t, ts: Date.now() },
-        [lbPath]:  { t, ts: Date.now(), name, photo }
+        [_lvlPath(uid, levelNum)]: { t, ts },
+        [_lbPath (uid, levelNum)]: { t, ts, name, photo }
       });
 
-      // Auto-unlock skins at milestone levels
-      const UNLOCK = { 2:'ghost', 4:'neon', 6:'fire', 8:'void', 10:'rainbow' };
-      if (UNLOCK[levelNum]) {
-        await unlockSkin(uid, UNLOCK[levelNum]).catch(() => {});
-      }
-      console.log(`[FB] ✓ L${levelNum}: ${t}s — new record`);
-    } else {
-      console.log(`[FB] L${levelNum}: ${t}s — not a PB (best: ${prev}s)`);
+      // Milestone skin unlocks
+      const UNLOCKS = { 2:'ghost', 4:'neon', 6:'fire', 8:'void', 10:'rainbow' };
+      if (UNLOCKS[levelNum]) unlockSkin(uid, UNLOCKS[levelNum]).catch(() => {});
+
+      console.log(`[FB] ✓ L${levelNum} new PB: ${t}s`);
     }
+
     return { saved: isRecord, isRecord, prev };
 
-  } catch(e) {
-    console.error('[FB] saveLevelTime FAILED:', e.code, e.message);
-    if (e.code === 'PERMISSION_DENIED')
-      console.error('[FB] → PERMISSION_DENIED: paste the DB rules shown at the top of firebase.js');
+  } catch (e) {
+    _logErr('saveLevelTime', e);
     return { saved: false, isRecord: false, prev: null };
   }
 }
 
-// Returns { L1: { t, ts }, L2: { t, ts }, ... }
+// ── GET MY TIMES  →  users/{uid}/G/CP/L ──────────────────────────────────────
+// Returns { L1:{ t,ts }, L2:{ t,ts }, ... }
 async function getMyTimes(uid) {
   try {
-    const snap = await db.ref(`users/${uid}/D/CubePlatformer/L`).get();
-    return snap.exists() ? (snap.val() || {}) : {};
-  } catch(e) { console.warn('[FB] getMyTimes:', e.message); return {}; }
+    const s = await db.ref(`users/${uid}/G/CP/L`).get();
+    return s.exists() ? (s.val() || {}) : {};
+  } catch (e) { console.warn('[FB] getMyTimes:', e.message); return {}; }
 }
 
-// ── LEADERBOARD  ( LB/CubePlatformer/{n}/ ) ──────────────────────────────────
-// Returns [{ uid, name, photo, t, ts }, ...] sorted by t asc
+// ── LEADERBOARD  →  LB/CP/{levelNum} ─────────────────────────────────────────
+// Returns [{ uid, name, photo, t, ts }, ...] sorted asc
 async function getLeaderboard(levelNum) {
-  try {
-    const snap = await db.ref(`LB/CubePlatformer/${levelNum}`)
-      .orderByChild('t').limitToFirst(200).get();
-    if (!snap.exists()) return [];
-    const rows = [];
-    snap.forEach(child => {
-      const v = child.val();
-      rows.push({ uid: child.key, name: v.name || 'Anonymous', photo: v.photo || '', t: v.t, ts: v.ts || 0 });
-    });
-    rows.sort((a, b) => a.t - b.t);
-    return rows;
-  } catch(e) {
-    console.error('[FB] getLeaderboard:', e.code, e.message);
-    throw e; // let caller show the error
-  }
+  const snap = await db.ref(`LB/CP/${levelNum}`)
+    .orderByChild('t').limitToFirst(200).get();   // throws on PERMISSION_DENIED
+  if (!snap.exists()) return [];
+  const rows = [];
+  snap.forEach(c => {
+    const v = c.val();
+    rows.push({ uid: c.key, name: v.name || 'Anonymous', photo: v.photo || '', t: v.t, ts: v.ts || 0 });
+  });
+  rows.sort((a, b) => a.t - b.t);
+  return rows;
 }
 
 // ── EXPORT ────────────────────────────────────────────────────────────────────
@@ -195,4 +188,4 @@ window.FB = {
   saveLevelTime, getMyTimes,
   getLeaderboard
 };
-console.log('[FB] firebase.js loaded ✓  (new DB shape: C/S + D/CubePlatformer/L + LB)');
+console.log('[FB] loaded ✓  shape: users/G/CP/L  |  LB/CP  |  C/S skins');
