@@ -20,7 +20,7 @@ const SKINS = {
 };
 
 function mkPlayer(sx, sy) {
-  return { x: sx, y: sy, w: 24, h: 24, dx: 0, dy: 0, jumps: 0, maxJumps: 2, onWall: false, wallDir: 0, onGround: false, prevY: sy, rotation: 0, spinSpeed: 0, sx, sy };
+  return { x: sx, y: sy, w: 24, h: 24, dx: 0, dy: 0, jumps: 0, maxJumps: 2, onWall: false, wallDir: 0, onGround: false, prevY: sy, prevX: sx, rotation: 0, spinSpeed: 0, sx, sy, surface: null };
 }
 
 keys = {};
@@ -84,6 +84,13 @@ async function initGame(lvlNum) {
       p._ox = p.x;
       p._oy = p.y;
     }
+    if (p.falling) {
+      p._startY = p.y;
+      p._fall = false;
+      p._timer = 0;
+    }
+    p._lastX = p.x;
+    p._lastY = p.y;
   });
 
   player = mkPlayer(lvl.spawn.x, lvl.spawn.y);
@@ -91,7 +98,7 @@ async function initGame(lvlNum) {
   timerStart = performance.now();
   elapsedMs = 0;
 
-  const u = window.FB?.currentUser();
+  const u = window.FB?.currentUser?.();
   if (u) {
     try {
       const sd = await window.FB.getSkinData(u.uid);
@@ -118,7 +125,9 @@ function resetPlayer() {
   player.onGround = false;
   player.rotation = 0;
   player.spinSpeed = 0;
-  timerStart = performance.now() - elapsedMs;
+  player.surface = null;
+  timerStart = performance.now();
+  elapsedMs = 0;
 }
 
 function updateCam(wW, wH) {
@@ -128,6 +137,40 @@ function updateCam(wW, wH) {
   cam.y = Math.max(0, Math.min(cam.y, wH - VH));
 }
 
+function rectHit(ax, ay, aw, ah, bx, by, bw, bh) {
+  return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+}
+
+function applySurface(surface) {
+  if (surface === 'ice') player.dx *= 0.995;
+  else if (surface === 'mud') player.dx *= 0.75;
+  else if (surface === 'conveyorL') player.x -= 1.1;
+  else if (surface === 'conveyorR') player.x += 1.1;
+}
+
+function updateMovingPlatform(p) {
+  if (!p.moving) return { dx: 0, dy: 0 };
+  const prevX = p.x, prevY = p.y;
+  p._t += p.moving.speed * 0.016;
+  const offset = Math.sin(p._t) * p.moving.range;
+  if (p.moving.axis === 'x') p.x = p._ox + offset;
+  else p.y = p._oy + offset;
+  return { dx: p.x - prevX, dy: p.y - prevY };
+}
+
+function updateFallingPlatform(p) {
+  if (!p.falling) return;
+  p._timer++;
+  if (!p._fall && p._timer > p.delay) p._fall = true;
+  if (p._fall) p.y += p.fallSpeed;
+}
+
+function updateHazardCycle(item, cycle, phase = 0) {
+  if (cycle == null) return true;
+  const t = (performance.now() / 16) % cycle;
+  return t > phase && t < phase + cycle * 0.5;
+}
+
 function loop() {
   if (!running || won) return;
 
@@ -135,83 +178,128 @@ function loop() {
   const skin = currentSkin || SKINS.default;
   elapsedMs = performance.now() - timerStart;
 
-  lvl.platforms.forEach(p => {
-    if (!p.moving) return;
-    p._t += p.moving.speed * 0.016;
-    const offset = Math.sin(p._t) * p.moving.range;
-    const prevPx = p.x, prevPy = p.y;
-    if (p.moving.axis === 'x') p.x = p._ox + offset;
-    else p.y = p._oy + offset;
-    if (player.onGround) {
-      const wasOnThis = player.x + player.w > prevPx && player.x < prevPx + p.w && Math.abs((player.y + player.h) - prevPy) < 3;
-      if (wasOnThis) {
-        player.x += p.x - prevPx;
-        player.y += p.y - prevPy;
-      }
-    }
-  });
+  for (const p of lvl.platforms) {
+    p._lastX = p.x;
+    p._lastY = p.y;
+    const mv = updateMovingPlatform(p);
+    updateFallingPlatform(p);
+    p._dx = p.x - p._lastX;
+    p._dy = p.y - p._lastY;
+    p._mvx = mv.dx;
+    p._mvy = mv.dy;
+  }
 
   if (keys['KeyD'] || keys['ArrowRight']) player.dx += 0.85 * skin.accel;
   if (keys['KeyA'] || keys['ArrowLeft']) player.dx -= 0.85 * skin.accel;
-  player.dx *= 0.83;
-  player.x += player.dx;
+
+  player.dx *= player.onGround ? 0.84 : 0.985;
+  player.prevX = player.x;
   player.prevY = player.y;
-  player.dy += G;
+
+  player.x += player.dx;
   player.y += player.dy;
+  player.dy += G;
+
   player.x = Math.max(0, Math.min(player.x, lvl.w - player.w));
   if (player.y > lvl.h + 80) resetPlayer();
 
-  player.onWall = false;
   player.onGround = false;
+  player.onWall = false;
+  player.surface = null;
 
   for (const p of lvl.platforms) {
-    if (player.x + player.w <= p.x || player.x >= p.x + p.w) continue;
-    if (player.y + player.h <= p.y || player.y >= p.y + p.h) continue;
+    if (!rectHit(player.x, player.y, player.w, player.h, p.x, p.y, p.w, p.h)) continue;
 
-    const wasAbove = player.prevY + player.h <= p.y + 5;
-    const wasBelow = player.prevY >= p.y + p.h - 5;
+    const fromTop = player.prevY + player.h <= p.y + 5 && player.dy >= 0;
+    const fromBottom = player.prevY >= p.y + p.h - 5 && player.dy < 0;
+    const fromLeft = player.prevX + player.w <= p.x + 5;
+    const fromRight = player.prevX >= p.x + p.w - 5;
 
-    if (player.dy >= 0 && wasAbove) {
+    if (fromTop) {
       player.y = p.y - player.h;
       player.dy = 0;
       player.jumps = 0;
       player.onGround = true;
-      const snap = Math.round(player.rotation / (Math.PI / 2)) * (Math.PI / 2);
-      player.rotation += (snap - player.rotation) * 0.25;
-      player.spinSpeed = 0;
-    } else if (player.dy < 0 && wasBelow) {
+      player.surface = p.surface || null;
+      if (p._dx || p._dy) {
+        player.x += p._dx;
+        player.y += p._dy;
+      }
+      applySurface(p.surface);
+      if (p.trap) {
+        p._timer++;
+        if (p._timer > p.delay) p._broken = true;
+      }
+    } else if (fromBottom) {
       player.y = p.y + p.h;
       player.dy = 0;
+    } else if (fromLeft || fromRight) {
+      player.onWall = true;
+      player.wallDir = fromLeft ? -1 : 1;
+      player.dx = 0;
+      player.dy *= 0.75;
     } else {
       player.onWall = true;
       player.wallDir = (player.x + player.w / 2 < p.x + p.w / 2) ? 1 : -1;
       player.dx = 0;
-      player.dy *= 0.75;
     }
   }
 
-  for (const b of lvl.bouncePads) {
-    if (
-      player.x + player.w > b.x &&
-      player.x < b.x + b.w &&
-      player.y + player.h > b.y &&
-      player.y + player.h < b.y + b.h + 12 &&
-      player.dy > 0
-    ) {
-      player.dy = -(b.force);
+  for (const p of lvl.platforms) {
+    if (p.falling && p._fall && p.y > lvl.h + 100) {
+      p.y = p._startY;
+      p._timer = 0;
+      p._fall = false;
+    }
+  }
+
+  for (const b of (lvl.bouncePads || [])) {
+    if (rectHit(player.x, player.y, player.w, player.h, b.x, b.y, b.w, b.h) && player.dy > 0) {
+      player.dy = -b.force;
       player.y = b.y - player.h;
       player.jumps = 0;
       player.spinSpeed = (player.dx > 0 ? 1 : -1) * 0.3;
     }
   }
 
-  for (const h of lvl.hazards) {
-    if (
-      player.x + player.w > h.x &&
-      player.x < h.x + h.w &&
-      player.y + player.h > h.y &&
-      player.y < h.y + h.h
-    ) {
+  for (const fan of (lvl.windFans || [])) {
+    if (!rectHit(player.x - 20, player.y - 20, player.w + 40, player.h + 40, fan.x - 10, fan.y - 10, fan.w + 20, fan.h + 20)) continue;
+    if (fan.dir === 'up') player.dy -= fan.force;
+    if (fan.dir === 'down') player.dy += fan.force;
+    if (fan.dir === 'left') player.dx -= fan.force;
+    if (fan.dir === 'right') player.dx += fan.force;
+  }
+
+  for (const h of (lvl.hazards || [])) {
+    if (rectHit(player.x, player.y, player.w, player.h, h.x, h.y, h.w, h.h)) {
+      resetPlayer();
+      break;
+    }
+  }
+
+  for (const l of (lvl.lasers || [])) {
+    if (!updateHazardCycle(l, l.cycle, l.phase || 0)) continue;
+    if (rectHit(player.x, player.y, player.w, player.h, l.x, l.y, l.w, l.h)) {
+      resetPlayer();
+      break;
+    }
+  }
+
+  for (const s of (lvl.spikes || [])) {
+    if (!updateHazardCycle(s, s.cycle, s.phase || 0)) continue;
+    if (rectHit(player.x, player.y, player.w, player.h, s.x, s.y, s.w, s.h)) {
+      resetPlayer();
+      break;
+    }
+  }
+
+  for (const saw of (lvl.saws || [])) {
+    const t = (performance.now() / 16) * saw.speed * 0.02 + (saw.phase || 0);
+    const ox = saw.axis === 'x' ? Math.sin(t) * saw.range : 0;
+    const oy = saw.axis === 'y' ? Math.sin(t) * saw.range : 0;
+    saw._cx = saw.x + ox;
+    saw._cy = saw.y + oy;
+    if (rectHit(player.x, player.y, player.w, player.h, saw._cx - saw.r, saw._cy - saw.r, saw.r * 2, saw.r * 2)) {
       resetPlayer();
       break;
     }
@@ -224,16 +312,11 @@ function loop() {
   }
 
   const g = lvl.goal;
-  if (
-    player.x + player.w > g.x &&
-    player.x < g.x + g.w &&
-    player.y + player.h > g.y &&
-    player.y < g.y + g.h
-  ) {
+  if (rectHit(player.x, player.y, player.w, player.h, g.x, g.y, g.w, g.h)) {
     won = true;
     running = false;
     const secs = elapsedMs / 1000;
-    const u = window.FB?.currentUser();
+    const u = window.FB?.currentUser?.();
     if (u) {
       window.FB.saveLevelTime(u.uid, currentLvl, secs)
         .then(res => drawWin(secs, res.isRecord, res.prev))
@@ -260,14 +343,28 @@ function draw(lvl) {
   ctx.translate(-cam.x, -cam.y);
 
   for (const p of lvl.platforms) {
+    if (p._broken) continue;
     ctx.fillStyle = p.c;
     ctx.beginPath();
     ctx.roundRect(p.x, p.y, p.w, p.h, 5);
     ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,.08)';
-    ctx.beginPath();
-    ctx.roundRect(p.x + 3, p.y + 2, p.w - 6, Math.min(4, p.h / 2), 3);
-    ctx.fill();
+
+    if (p.surface === 'ice') {
+      ctx.fillStyle = 'rgba(255,255,255,.15)';
+      ctx.fillRect(p.x, p.y + 2, p.w, 2);
+    } else if (p.surface === 'mud') {
+      ctx.fillStyle = 'rgba(0,0,0,.12)';
+      ctx.fillRect(p.x, p.y + p.h - 3, p.w, 3);
+    } else if (p.surface === 'conveyorL' || p.surface === 'conveyorR') {
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      for (let i = 0; i < p.w; i += 12) {
+        ctx.fillRect(p.x + i, p.y + p.h / 2 - 1, 7, 2);
+      }
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px sans-serif';
+      ctx.fillText(p.surface === 'conveyorL' ? '◄◄◄' : '►►►', p.x + 8, p.y + 12);
+    }
+
     if (p.moving) {
       ctx.strokeStyle = lvl.accent + '66';
       ctx.lineWidth = 2;
@@ -278,16 +375,15 @@ function draw(lvl) {
     }
   }
 
-  for (const b of lvl.bouncePads) {
+  for (const b of (lvl.bouncePads || [])) {
     ctx.fillStyle = '#1a1a1a';
     ctx.beginPath();
     ctx.roundRect(b.x, b.y, b.w, b.h, 4);
     ctx.fill();
-    const coils = 4;
     ctx.strokeStyle = lvl.accent;
     ctx.lineWidth = 2;
-    for (let i = 0; i < coils; i++) {
-      const cx = b.x + (b.w / coils) * (i + 0.5);
+    for (let i = 0; i < 4; i++) {
+      const cx = b.x + (b.w / 4) * (i + 0.5);
       ctx.beginPath();
       ctx.moveTo(cx - 4, b.y + b.h);
       ctx.lineTo(cx + 4, b.y + 2);
@@ -301,7 +397,19 @@ function draw(lvl) {
     ctx.lineWidth = 1;
   }
 
-  for (const h of lvl.hazards) {
+  for (const fan of (lvl.windFans || [])) {
+    ctx.fillStyle = 'rgba(255,255,255,.12)';
+    ctx.beginPath();
+    ctx.roundRect(fan.x, fan.y, fan.w, fan.h, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#fff4';
+    ctx.strokeRect(fan.x, fan.y, fan.w, fan.h);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.fillText(fan.dir === 'up' ? '↑' : fan.dir === 'down' ? '↓' : fan.dir === 'left' ? '←' : '→', fan.x + 8, fan.y + 24);
+  }
+
+  for (const h of (lvl.hazards || [])) {
     ctx.fillStyle = '#7f1d1d';
     ctx.beginPath();
     ctx.roundRect(h.x, h.y, h.w, h.h, 3);
@@ -316,6 +424,52 @@ function draw(lvl) {
       ctx.lineTo(sx + 5, h.y);
       ctx.closePath();
       ctx.fill();
+    }
+  }
+
+  for (const l of (lvl.lasers || [])) {
+    const on = updateHazardCycle(l, l.cycle, l.phase || 0);
+    if (!on) continue;
+    ctx.fillStyle = '#ff4d6d';
+    ctx.shadowColor = '#ff4d6d';
+    ctx.shadowBlur = 18;
+    ctx.fillRect(l.x, l.y, l.w, l.h);
+    ctx.shadowBlur = 0;
+  }
+
+  for (const s of (lvl.spikes || [])) {
+    const on = updateHazardCycle(s, s.cycle, s.phase || 0);
+    if (!on) continue;
+    ctx.fillStyle = '#d946ef';
+    const n = Math.max(1, Math.floor(s.w / 12));
+    for (let i = 0; i < n; i++) {
+      const x = s.x + i * 12;
+      ctx.beginPath();
+      ctx.moveTo(x, s.y + s.h);
+      ctx.lineTo(x + 6, s.y);
+      ctx.lineTo(x + 12, s.y + s.h);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  for (const saw of (lvl.saws || [])) {
+    const t = (performance.now() / 16) * saw.speed * 0.02 + (saw.phase || 0);
+    const x = saw.x + (saw.axis === 'x' ? Math.sin(t) * saw.range : 0);
+    const y = saw.y + (saw.axis === 'y' ? Math.sin(t) * saw.range : 0);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.arc(x, y, saw.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#64748b';
+    ctx.stroke();
+    ctx.fillStyle = '#1e293b';
+    for (let i = 0; i < 8; i++) {
+      const a = (Math.PI * 2 / 8) * i;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * (saw.r + 5), y + Math.sin(a) * (saw.r + 5));
+      ctx.stroke();
     }
   }
 
@@ -366,6 +520,7 @@ function drawPlayer(accent) {
   ctx.beginPath();
   ctx.roundRect(-hw, -hh, player.w, player.h, 4);
   ctx.fill();
+
   ctx.fillStyle = skin.shine;
   ctx.beginPath();
   ctx.roundRect(-hw + 3, -hh + 3, hw - 2, hh - 2, 3);
@@ -386,7 +541,7 @@ function drawHUD(lvl) {
   const t = (elapsedMs / 1000).toFixed(2);
   ctx.fillStyle = 'rgba(0,0,0,.65)';
   ctx.beginPath();
-  ctx.roundRect(10, 10, 290, 30, 8);
+  ctx.roundRect(10, 10, 310, 30, 8);
   ctx.fill();
   ctx.fillStyle = lvl.accent;
   ctx.font = 'bold 11px Nunito,sans-serif';
@@ -407,15 +562,15 @@ function drawWin(secs, isRecord, prev) {
   ctx.shadowColor = lvl.accent;
   ctx.shadowBlur = 28;
   ctx.font = 'bold 46px Nunito,sans-serif';
-  ctx.fillText('✓  LEVEL CLEAR!', VW / 2, VH / 2 - 64);
+  ctx.fillText('✓ LEVEL CLEAR!', VW / 2, VH / 2 - 64);
   ctx.shadowBlur = 0;
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 26px Nunito,sans-serif';
-  ctx.fillText('⏱  ' + secs.toFixed(3) + 's', VW / 2, VH / 2 - 18);
+  ctx.fillText('⏱ ' + secs.toFixed(3) + 's', VW / 2, VH / 2 - 18);
   if (isRecord) {
     ctx.fillStyle = '#fbbf24';
     ctx.font = 'bold 13px Nunito,sans-serif';
-    ctx.fillText('🏅 NEW PERSONAL BEST!' + (prev != null ? `  (prev: ${prev.toFixed(3)}s)` : ''), VW / 2, VH / 2 + 14);
+    ctx.fillText('🏅 NEW PERSONAL BEST!' + (prev != null ? ` (prev: ${prev.toFixed(3)}s)` : ''), VW / 2, VH / 2 + 14);
   }
   ctx.fillStyle = 'rgba(255,255,255,.55)';
   ctx.font = 'bold 14px Nunito,sans-serif';
